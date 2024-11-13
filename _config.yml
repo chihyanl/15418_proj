@@ -3,11 +3,5 @@ theme: minima
 description: CMU 15-418/15-618 Fall 2024 Final Project
 safe: true
 
-defaults:
-  - scope:
-      path: /proposal.md
-      type: pages
-    values:
-      layout: single
-      sidebar:
-        nav: "Proposal"
+header_pages:
+  - proposal.md

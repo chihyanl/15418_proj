@@ -28,7 +28,7 @@ As outlined in the paper, managing the data dependency between the kernel thread
 To properly benefit from layer fusion, we have to implement kernel function(s) that can properly cache intermediate date between layers and synchronize computation between layers. Computation in the later layers have dependency on earlier layers' result, while also requiring less computation in a pyramid fashion as shown in the diagram of the previous section. We also need to ensure all cached data fits in the GPU's memory. Ensuring all of these constraints while maintaining high performance poses a huge challenge.
 
 ### Resources
-&ensp;[1]&ensp;M. Alwani, H. Chen, M. Ferdman and P. Milder, "Fused-layer CNN accelerators," 2016 49th Annual IEEE/ACM International Symposium on Microarchitecture (MICRO), Taipei, Taiwan, 2016, pp. 1-12, doi: [10.1109/MICRO.2016.7783725.](https://doi.org/10.1109/MICRO.2016.7783725)
+> [1] M. Alwani, H. Chen, M. Ferdman and P. Milder, "Fused-layer CNN accelerators," 2016 49th Annual IEEE/ACM International Symposium on Microarchitecture (MICRO), Taipei, Taiwan, 2016, pp. 1-12, doi: [10.1109/MICRO.2016.7783725.](https://doi.org/10.1109/MICRO.2016.7783725)
 
 ### Goals and Deliverables
 #### Minimum goal

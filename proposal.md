@@ -1,7 +1,7 @@
 ---
 layout: page
 title: Proposal
-permalink: /proposal/
+permalink: /
 ---
 ### Title
 CNN Acceleration with Layer Fusion on GPU

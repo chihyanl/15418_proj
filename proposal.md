@@ -2,8 +2,6 @@
 layout: page
 title: Proposal
 permalink: /proposal/
-redirect_from:
-  - /index.html
 ---
 ### Title
 CNN Acceleration with Layer Fusion on GPU

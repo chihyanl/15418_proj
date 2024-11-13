@@ -4,6 +4,8 @@ description: CMU 15-418/15-618 Fall 2024 Final Project
 
 header_pages:
   - proposal.md
+  - milestone_report.md
+  - final_report.md
 
 plugins:
   - jekyll-redirect-from

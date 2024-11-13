@@ -4,7 +4,7 @@ title: Proposal
 permalink: /
 ---
 ### Title
-CNN Acceleration with Layer Fusion on GPU
+CNN with Layer Fusion on NVIDIA GPU
 ### Team
 * Lawrence Lo
 * Eshita Shrawan

@@ -18,4 +18,4 @@ Conventional convolution layer has results stored locally and written to the mem
 
 Layer fusion uses tiles of blocked kernels to form a pyramid. By using the outputs of the first few layers immediately reduces the need to store/read them from the memory. However, with the pyramid structure, there are overlapping intermediate data used by different tiles. These intermediate data can either be recomputed or reused, each having their own trade-off. Recomputing is a simple approach but requires more operations, whereas reusing avoids the extra computation but requires more local storage.
 
-<img src="./fusion_pyramid.png" width=400>
+<img src="../fusion_pyramid.png" width=400>

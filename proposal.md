@@ -10,7 +10,7 @@ CNN Acceleration with Layer Fusion on GPU
 * Eshita Shrawan
 
 ### URL
-https://chihyanl.github.io/15418_proj/
+<https://chihyanl.github.io/15418_proj/>
 ### Summary
 We are going to implement CNN with layer fusion on NVIDIA GPU. The project's goal is to port the original FPGA implementation to an NVIDIA GPU implementation.
 ### Background

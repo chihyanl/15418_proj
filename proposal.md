@@ -1,0 +1,1 @@
+![](fusion_pyramid.png)

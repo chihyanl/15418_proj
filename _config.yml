@@ -2,3 +2,6 @@ title: CNN with Layer Fusion on NVIDIA GPU
 theme: jekyll-theme-minimal
 description: CMU 15-418/15-618 Fall 2024 Final Project
 safe: true
+nav:
+  - name: "Proposal"
+    href: /proposal.md

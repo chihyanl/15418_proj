@@ -6,6 +6,3 @@ header_pages:
   - proposal.md
   - milestone_report.md
   - final_report.md
-
-plugins:
-  - jekyll-redirect-from

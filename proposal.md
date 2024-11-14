@@ -61,6 +61,6 @@ We will be implementing this project in C++ and CUDA. We will be using the GPUs 
 |-|-|
 | Week 1 | Proposal and research |
 | Week 2 | Implement CNN for MNIST on CUDA, optimize, and verify |
-| Week 3 | Implement layer fusion and complete minimum goals |
-| Week 4 | Milestone Report and analysis. Work on stretch goal if possible. |
+| Week 3 | Implement layer fusion and analysis |
+| Week 4 | Complete minimum goals and Milestone Report. Work on stretch goal if possible. |
 | Week 5 | Analysis and Final Report/Poster |

@@ -1,6 +1,7 @@
 title: CNN with Layer Fusion on NVIDIA GPU
 theme: minima
 description: CMU 15-418/15-618 Fall 2024 Final Project
+markdown: GFM
 
 header_pages:
   - proposal.md

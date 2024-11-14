@@ -2,6 +2,8 @@
 layout: page
 title: Proposal
 permalink: /
+redirect_from:
+  - /404.html
 ---
 ### Title
 CNN with Layer Fusion on NVIDIA GPU

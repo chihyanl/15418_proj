@@ -21,6 +21,9 @@ Layer fusion uses tiles of blocked kernels to form a pyramid. By using the outpu
 <p align="center">
   <img src="./fusion_pyramid.png" width=400>
 </p>
+<p align="center">
+  Fig 1. Example of a single pyramid and a multi-pyramid applied over four layers [1]
+</p>
 
 ### The Challenge
 As outlined in the paper, managing the data dependency between the kernel threads during implementation is the biggest challenge. The paper mentions that "current GPU programming abstractions make it challenging to precisely orchestrate the thread behavior and buffer management of layer fusiocurrent GPU programming abstractions make it challenging to precisely orchestrate the thread behavior and buffer management of layer fusion" [1].

@@ -54,5 +54,10 @@ The third goal especially will make a flashy demo for the poster session.
 We will be implementing this project in C++ and CUDA. We will be using the GPUs in the GHC cluster equipped with NVIDIA GeForce RTX 2080. Our project specifically explores CNN Layer Fusion in GPU, and this is the most accessible GPUs we can utilize.
 
 ### Schedule
-Lorem Ipsum
-
+| | |
+|-|-|
+| Week 1 | Proposal and research |
+| Week 2 | Implement CNN for MNIST on CUDA, optimize, and verify |
+| Week 3 | Implement layer fusion and complete minimum goals |
+| Week 4 | Milestone Report and analysis. Work on stretch goal if possible. |
+| Week 5 | Analysis and Final Report/Poster |

@@ -6,5 +6,5 @@ Tensor Model::Forward(const Tensor &input) {
     out_tensor = l.Apply(out_tensor);
   }
 
-  return std::move(out_tensor);
+  return out_tensor;
 }

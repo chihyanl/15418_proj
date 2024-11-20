@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <stdexcept>
 #include <vector>
 
 using namespace std;
@@ -22,7 +23,14 @@ typedef Tensor (*ActivFunc)(Tensor &);
 
 class Layer {
 public:
-  Tensor Apply(const Tensor &input);
+  Tensor Apply(const Tensor &input) {
+    throw std::runtime_error("Base Class apply called");
+  }
+
+  void SetIsTraining(bool is_training) { _is_training = is_training; }
+
+protected:
+  bool _is_training;
 };
 
 class Conv2d : public Layer {
@@ -34,6 +42,8 @@ public:
     _weights.reserve(_in_channels * _out_channels * _kernel_size *
                      _kernel_size);
   }
+
+  Tensor Apply(const Tensor &input);
 
 private:
   int _in_channels;
@@ -51,6 +61,8 @@ public:
         _out_channels(out_channels), _kernel_size(kernel_size),
         _activ_func(activ_func) {}
 
+  Tensor Apply(const Tensor &input);
+
 private:
   int _in_channels;
   int _mid_channels;
@@ -61,15 +73,30 @@ private:
 
 class Dropout2d : public Layer {
 public:
-  Dropout2d() {}
+  Dropout2d(float p) : _p(p) { _is_training = false; }
+
+  Tensor Apply(const Tensor &input);
+
+private:
+  float _p;
 };
 
 class Linear : public Layer {
 public:
   Linear(int in_channels, int out_channels)
-      : _in_channels(in_channels), _out_channels(out_channels) {}
+      : _in_channels(in_channels), _out_channels(out_channels) {
+    _weights.resize(_out_channels, std::vector<float>(_in_channels));
+    _biases.resize(_out_channels);
+    InitWeights();
+  }
+
+  Tensor Apply(const Tensor &input);
+
+  void InitWeights();
 
 private:
   int _in_channels;
   int _out_channels;
+  std::vector<std::vector<float>> _weights;
+  std::vector<float> _biases;
 };

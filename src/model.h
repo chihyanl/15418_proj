@@ -18,7 +18,7 @@ public:
     layers.reserve(5);
     layers[0] = std::move(Conv2d(1, 10, 5, nullptr));
     layers[1] = std::move(Conv2d(10, 20, 5, nullptr));
-    layers[2] = std::move(Dropout2d());
+    layers[2] = std::move(Dropout2d(0.2));
     layers[3] = std::move(Linear(320, 50));
     layers[4] = std::move(Linear(50, 10));
   }
@@ -29,7 +29,7 @@ public:
   FusionModel() {
     layers.reserve(4);
     layers[0] = std::move(Conv2dFusion(1, 10, 20, 5, nullptr));
-    layers[1] = std::move(Dropout2d());
+    layers[1] = std::move(Dropout2d(0.2));
     layers[2] = std::move(Linear(320, 50));
     layers[3] = std::move(Linear(50, 10));
   }

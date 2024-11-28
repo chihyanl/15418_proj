@@ -1,7 +1,7 @@
-EXECUTABLE := mnistCPU
-CU_FILES   := 
+EXECUTABLE := mnistCuda
+CU_FILES   := main.cu layer.cu
 CU_DEPS    :=
-CC_FILES   := main.cpp layer.cpp dataset.cpp
+CC_FILES   := dataset.cpp
 
 
 all: $(EXECUTABLE)

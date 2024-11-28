@@ -10,10 +10,6 @@ float randomFloat(float a, float b) {
   return random_value * (b - a) + a;
 }
 
-void printTest(float input, int in_channels) {
-  if (in_channels == 6 && (std::isnan(input) || std::abs(input)>1)) printf("%f ", input);
-}
-
 Conv::Conv(int in_channels, int out_channels, int height, int width, int kernel_h, int kernel_w, int stride, int pad)
   : height(height),               // input height
     width(width),                 // input width

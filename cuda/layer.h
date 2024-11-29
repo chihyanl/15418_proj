@@ -9,7 +9,6 @@ class Layer {
 
     float *u_weight;
     float *u_bias;
-    float *gradient;
     float *error;
 };
 

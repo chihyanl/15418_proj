@@ -92,7 +92,7 @@ __global__ void randomFloat(float* ptr, float a, float b, int size) {
   ptr[idx] = curand_uniform(&state) * (b - a) + a;
 }
 
-__global__ void cudaConvForward(int height, int width, int in_channels, int out_channels, int kernel_h, int kernel_w, int stride, int pad, int height_out, int width_out, float* input, float* output, float* weight, float* bias, float* gradient) {
+__global__ void cudaConvForward(int height, int width, int in_channels, int out_channels, int kernel_h, int kernel_w, int stride, int pad, int height_out, int width_out, float* input, float* output, float* weight, float* bias) {
   int outIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (outIdx >= out_channels * height_out * width_out) {
@@ -128,10 +128,9 @@ __global__ void cudaConvForward(int height, int width, int in_channels, int out_
   
   sum = (sum > 0) ? sum : 0;  // relu
   output[outIdx] = sum;
-  gradient[outIdx] = (sum > 0) ? 1 : 0;
 }
 
-__global__ void cudaConvBackward(int height, int width, int in_channels, int out_channels, int kernel_h, int kernel_w, int stride, int pad, int height_out, int width_out, float* input, float* output, float* weight, float* u_weight, float* u_bias, float* gradient, float* error, float* src_error) {
+__global__ void cudaConvBackward(int height, int width, int in_channels, int out_channels, int kernel_h, int kernel_w, int stride, int pad, int height_out, int width_out, float* input, float* output, float* weight, float* u_weight, float* u_bias, float* error, float* src_error) {
   int outIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (outIdx >= out_channels * height_out * width_out) {
@@ -146,7 +145,7 @@ __global__ void cudaConvBackward(int height, int width, int in_channels, int out
   int src_y = stride * dst_y - pad;
   int src_x = stride * dst_x - pad;
 
-  float dnet = error[outIdx] * gradient[outIdx];
+  float dnet = error[outIdx] * (output[outIdx] > 0);
   atomicAdd(&u_bias[dst_channel], dnet);
   for (int src_channel = 0; src_channel < in_channels; src_channel++) {
     int dstIdx_base2 = src_channel * kernel_h * kernel_w;
@@ -228,19 +227,19 @@ __global__ void cudaLinearForward(int in_channels, int out_channels, float* inpu
   }
 }
 
-__global__ void cudaLinearBackward(int in_channels, int out_channels, float* input, float* weight, float* u_weight, float* u_bias, float* gradient, float* output, float* error, float* src_error) {
+__global__ void cudaLinearBackward(int in_channels, int out_channels, float* input, float* weight, float* u_weight, float* u_bias, float* output, float* error, float* src_error) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (i >= out_channels) {
     return;
   }
 
-  gradient[i] = output[i] + error[i];
+  float gradient = output[i] + error[i];
   for (int j = 0; j < in_channels; j++) {
-    atomicAdd(&src_error[j], weight[i*in_channels+j] * gradient[i]);
-    u_weight[i*in_channels+j] += gradient[i] * input[j];
+    atomicAdd(&src_error[j], weight[i*in_channels+j] * gradient);
+    u_weight[i*in_channels+j] += gradient * input[j];
   }
-  u_bias[i] += gradient[i];
+  u_bias[i] += gradient;
 }
 
 __global__ void cudaLinearUpdate(int in_channels, int out_channels, float* weight, float* u_weight, float* bias, float* u_bias, float* error, float rate) {
@@ -283,12 +282,10 @@ Conv::Conv(int in_channels, int out_channels, int height, int width, int kernel_
 
   cudaMalloc(&u_bias, sizeof(float) * out_channels);
   cudaMalloc(&u_weight, sizeof(float) * out_channels * in_channels * kernel_h * kernel_w);
-  cudaMalloc(&gradient, sizeof(float) * out_channels * height_out * width_out);
   cudaMalloc(&error, sizeof(float) * out_channels * height_out * width_out);
   
   cudaMemset(u_bias, 0, sizeof(float) * out_channels);
   cudaMemset(u_weight, 0, sizeof(float) * out_channels * in_channels * kernel_h * kernel_w);
-  cudaMemset(gradient, 0, sizeof(float) * out_channels * height_out * width_out);
   cudaMemset(error, 0, sizeof(float) * out_channels * height_out * width_out);
 
   printf("Conv=%dx%dx%d (%d->%d), Kernel=%dx%d, Stride=%d, Pad=%d, Weight=%d, Bias=%d\n", height_out, width_out, out_channels, in_channels*width*height, out_channels*height_out*width_out, kernel_h, kernel_w, stride, pad, out_channels*in_channels*kernel_h*kernel_w, out_channels);
@@ -308,14 +305,13 @@ Conv::~Conv() {
   cudaFree(error);
   cudaFree(u_bias);
   cudaFree(u_weight);
-  cudaFree(gradient);
 }
 
 void Conv::forward(float* input) {
   dim3 blockDim(BLOCK_SIZE, 1);
   dim3 gridDim((out_channels * height_out * width_out + blockDim.x - 1) / blockDim.x);
 
-  cudaConvForward<<<gridDim, blockDim>>>(height, width, in_channels, out_channels, kernel_h, kernel_w, stride, pad, height_out, width_out, input, output, weight, bias, gradient);
+  cudaConvForward<<<gridDim, blockDim>>>(height, width, in_channels, out_channels, kernel_h, kernel_w, stride, pad, height_out, width_out, input, output, weight, bias);
 }
 
 void Conv::backward(float* input, float* src_error) {
@@ -326,7 +322,7 @@ void Conv::backward(float* input, float* src_error) {
   dim3 blockDim(BLOCK_SIZE, 1);
   dim3 gridDim((out_channels * height_out * width_out + blockDim.x - 1) / blockDim.x);
 
-  cudaConvBackward<<<gridDim, blockDim>>>(height, width, in_channels, out_channels, kernel_h, kernel_w, stride, pad, height_out, width_out, input, output, weight, u_weight, u_bias, gradient, error, src_error);
+  cudaConvBackward<<<gridDim, blockDim>>>(height, width, in_channels, out_channels, kernel_h, kernel_w, stride, pad, height_out, width_out, input, output, weight, u_weight, u_bias, error, src_error);
 }
 
 void Conv::update(float rate) {
@@ -352,12 +348,10 @@ Linear::Linear(int in_channels, int out_channels)
   cudaMalloc(&error, sizeof(float) * out_channels);
   cudaMalloc(&u_bias, sizeof(float) * out_channels);
   cudaMalloc(&u_weight, sizeof(float) * out_channels * in_channels);
-  cudaMalloc(&gradient, sizeof(float) * out_channels);
 
   cudaMemset(error, 0, sizeof(float) * out_channels);
   cudaMemset(u_bias, 0, sizeof(float) * out_channels);
   cudaMemset(u_weight, 0, sizeof(float) * out_channels * in_channels);
-  cudaMemset(gradient, 0, sizeof(float) * out_channels);
 
   printf("Linear=%d->%d\n", in_channels, out_channels);
   
@@ -376,7 +370,6 @@ Linear::~Linear() {
   cudaFree(error);
   cudaFree(u_bias);
   cudaFree(u_weight);
-  cudaFree(gradient);
 }
 
 void Linear::forward(float* input) {
@@ -397,7 +390,7 @@ void Linear::backward(float* input, float* src_error) {
 
   dim3 blockDim(out_channels, 1);
   dim3 gridDim(1);
-  cudaLinearBackward<<<gridDim, blockDim>>>(in_channels, out_channels, input, weight, u_weight, u_bias, gradient, output, error, src_error);
+  cudaLinearBackward<<<gridDim, blockDim>>>(in_channels, out_channels, input, weight, u_weight, u_bias, output, error, src_error);
 }
 
 void Linear::update(float rate) {

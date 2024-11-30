@@ -28,7 +28,6 @@ Conv::Conv(int in_channels, int out_channels, int height, int width, int kernel_
 
   u_bias = (float*)calloc(out_channels, sizeof(float));
   u_weight = (float*)calloc(out_channels * in_channels * kernel_h * kernel_w, sizeof(float));
-  gradient = (float*)calloc(out_channels * height_out * width_out, sizeof(float));
   error = (float*)calloc(out_channels * height_out * width_out, sizeof(float));
 
   printf("Conv=%dx%dx%d (%d->%d), Kernel=%dx%d, Stride=%d, Pad=%d, Weight=%d, Bias=%d\n", height_out, width_out, out_channels, in_channels*width*height, out_channels*height_out*width_out, kernel_h, kernel_w, stride, pad, out_channels*in_channels*kernel_h*kernel_w, out_channels);
@@ -49,7 +48,6 @@ Conv::~Conv() {
   free(error);
   free(u_bias);
   free(u_weight);
-  free(gradient);
 }
 
 void Conv::forward(float* input) {
@@ -82,7 +80,6 @@ void Conv::forward(float* input) {
         }
         sum = (sum > 0) ? sum : 0;  // relu
         output[outIdx] = sum;
-        gradient[outIdx] = (sum > 0) ? 1 : 0;
       }
     }
   }
@@ -104,7 +101,7 @@ void Conv::backward(float* input, float* src_error) {
       for (int dst_x = 0; dst_x < width_out; dst_x++) {
         int src_x = stride * dst_x - pad;
         int outIdx = outIdx_base + outIdx_base2 + dst_x;
-        float dnet = error[outIdx] * gradient[outIdx];
+        float dnet = error[outIdx] * (output[outIdx] > 0);
         u_bias[dst_channel] += dnet;
         for (int src_channel = 0; src_channel < in_channels; src_channel++) {
           int dstIdx_base2 = src_channel * kernel_h * kernel_w;
@@ -154,7 +151,6 @@ Linear::Linear(int in_channels, int out_channels)
   error = (float*)calloc(out_channels, sizeof(float));
   u_bias = (float*)calloc(out_channels, sizeof(float));
   u_weight = (float*)calloc(in_channels * out_channels, sizeof(float));
-  gradient = (float*)calloc(out_channels, sizeof(float));
   
   printf("Linear=%d->%d\n", in_channels, out_channels);
 
@@ -174,7 +170,6 @@ Linear::~Linear() {
   free(error);
   free(u_bias);
   free(u_weight);
-  free(gradient);
 }
 
 void Linear::forward(float* input) {
@@ -209,12 +204,12 @@ void Linear::backward(float* input, float* src_error) {
   }
 
   for (int i = 0; i < out_channels; i++) {
-    gradient[i] = output[i] + error[i];
+    float gradient = output[i] + error[i];
     for (int j = 0; j < in_channels; j++) {
-      src_error[j] += weight[i*in_channels+j] * gradient[i];
-      u_weight[i*in_channels+j] += gradient[i] * input[j];
+      src_error[j] += weight[i*in_channels+j] * gradient;
+      u_weight[i*in_channels+j] += gradient * input[j];
     }
-    u_bias[i] += gradient[i];
+    u_bias[i] += gradient;
   }
 }
 

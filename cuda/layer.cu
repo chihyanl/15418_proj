@@ -307,7 +307,7 @@ Conv::~Conv() {
   cudaFree(u_weight);
 }
 
-void Conv::forward(float* input) {
+void Conv::forward(float* ) {
   dim3 blockDim(BLOCK_SIZE, 1);
   dim3 gridDim((out_channels * height_out * width_out + blockDim.x - 1) / blockDim.x);
 
@@ -332,6 +332,62 @@ void Conv::update(float rate) {
   cudaConvUpdate<<<gridDim, blockDim>>>(in_channels, out_channels, kernel_h, kernel_w, weight, u_weight, bias, u_bias, rate);
 }
 
+ConvFuse::ConvFuse(int in_channels, int mid_channels, int out_channels, ConvLayerConfig &l1_config, ConvLayerConfig &l2_config)
+  : in_channels(in_channels),
+    mid_channels(mid_channels),
+    out_channels(out_channels),
+    l1_config(l1_config),
+    l2_config(l2_config),
+    l1_h_out((l1_config.height + 2 * l1_config.pad - l1_config.kernel_h) / l1_config.stride + 1),
+    l1_w_out((l1_config.width + 2 * l1_config.pad - l1_config.kernel_w) / l1_config.stride + 1),
+    l2_h_out((l2_config.height + 2 * l2_config.pad - l2_config.kernel_h) / l2_config.stride + 1),
+    l2_w_out((l2_config.width + 2 * l2_config.pad - l2_config.kernel_w) / l2_config.stride + 1) {
+
+  // All memory needed for first layer
+  cudaMalloc(&mid_layer.output, sizeof(float) * mid_channels * l1_h_out * l1_w_out);
+  cudaMalloc(&mid_layer.bias, sizeof(float) * mid_channels);
+  cudaMalloc(&mid_layer.weight, sizeof(float) * mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w);
+
+  cudaMemset(mid_layer.output, 0 sizeof(float) * mid_channels * l1_h_out * l1_w_out);
+  cudaMemset(mid_layer.bias, 0, sizeof(float) * mid_channels);
+  cudaMemset(mid_layer.weight, 0, sizeof(float) * mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w);
+
+  cudaMalloc(&mid_layer.u_bias, sizeof(float) * mid_channels);
+  cudaMalloc(&mid_layer.u_weight, sizeof(float) * mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w);
+  cudaMalloc(&mid_layer.error, sizeof(float) * mid_channels * l1_h_out * l1_w_out);
+
+  cudaMemset(mid_layer.u_bias, 0, sizeof(float) * mid_channels);
+  cudaMemset(mid_layer.u_weight, 0, sizeof(float) * mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w);
+  cudaMemset(mid_layer.error, 0, sizeof(float) * mid_channels * l1_h_out * l1_w_out);
+
+  dim3 blockDim(BLOCK_SIZE, 1);
+  dim3 gridDim((mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w + blockDim.x - 1) / blockDim.x);
+  float k = sqrt(1.0f / (in_channels* l1_config.kernel_h * l1_config.kernel_w));
+  randomFloat<<<gridDim, blockDim>>>(mid_layer.weight, -k, k, mid_channels * in_channels* l1_config.kernel_h * l1_config.kernel_w);
+  randomFloat<<<gridDim, blockDim>>>(mid_layer.bias, -k, k, mid_channels);
+
+  // All memory needed for final layer
+  cudaMalloc(&output, sizeof(float) * out_channels * l2_h_out * l2_w_out);
+  cudaMalloc(&bias, sizeof(float) * out_channels);
+  cudaMalloc(&weight, sizeof(float) * out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w);
+
+  cudaMemset(output, 0, sizeof(float) * out_channels * l2_h_out * l2_w_out);
+  cudaMemset(bias, 0, sizeof(float) * out_channels);
+  cudaMemset(weight, 0, sizeof(float) * out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w);
+
+  cudaMalloc(&u_bias, sizeof(float) * out_channels);
+  cudaMalloc(&u_weight, sizeof(float) * out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w);
+  cudaMalloc(&error, sizeof(float) * out_channels * l2_h_out * l2_w_out);
+
+  cudaMemset(u_bias, 0, sizeof(float) * out_channels);
+  cudaMemset(u_weight, 0, sizeof(float) * out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w);
+  cudaMemset(error, 0, sizeof(float) * out_channels * l2_h_out * l2_w_out);
+
+  dim3 gridDim2((out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w + blockDim.x - 1) / blockDim.x);
+  float k = sqrt(1.0f / (mid_channels * l2_config.kernel_h * l2_config.kernel_w));
+  randomFloat<<<gridDim2, blockDim>>>(weight, -k, k, out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w);
+  randomFloat<<<gridDim2, blockDim>>>(bias, -k, k, out_channels);
+}
 
 Linear::Linear(int in_channels, int out_channels)
   : in_channels(in_channels),

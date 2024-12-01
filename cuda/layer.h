@@ -23,6 +23,24 @@ class Conv : public Layer {
     void update(float rate);
 };
 
+struct ConvLayerConfig {
+  int height, width, kernel_h, kernel_w, stride, pad;
+}
+
+class ConvFuse : public Layer {
+  public:
+    int in_channels, mid_channels, out_channels, l1_h_out, l1_w_out, l2_h_out, l2_w_out;
+    Layer mid_layer;
+
+    ConvLayerConfig l1_config, l2_config;
+
+    explicit ConvFuse(int in_channels, int mid_channels, int out_channels, ConvLayerConfig &l1_config, ConvLayerConfig &l2_config);
+    ~ConvFuse();
+    void forward(float* input);
+    void backward(float* input, float* src_error);
+    void update(float rate);
+}
+
 class Linear : public Layer {
   public:
     int in_channels, out_channels;

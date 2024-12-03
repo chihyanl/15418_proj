@@ -76,25 +76,29 @@ int main(int argc, char** argv) {
     int err = 0;
     float* train_data = (float*)malloc(sizeof(float) * TRAIN_SIZE * IMAGE_HEIGHT * IMAGE_WIDTH);
     int* train_label = (int*)malloc(sizeof(int) * TRAIN_SIZE);
-  
+
     err += get_MNIST_data("../dataset/train-images-idx3-ubyte", train_data, true);
     err += get_MNIST_label("../dataset/train-labels-idx1-ubyte", train_label, true);
 
     if (err) {
       return 1;
     }
-    
+
     float* device_train_data;
     cudaMalloc(&device_train_data, sizeof(float) * TRAIN_SIZE * IMAGE_HEIGHT * IMAGE_WIDTH);
     cudaMemcpy(device_train_data, train_data, sizeof(float) * TRAIN_SIZE * IMAGE_HEIGHT * IMAGE_WIDTH, cudaMemcpyHostToDevice);
-  
+
     for (int i = 1; i <= epoch_count; i++) {
       cudaMemset(device_correct, 0, sizeof(int));
+      double convAccTime = 0;
       double startTime = CycleTimer::currentSeconds();
       for (int j = 0; j < train_count; j++) {
         // forward
+        double convTimeStart = CycleTimer::currentSeconds();
         l1->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
         l2->forward(l1->output);
+        double convTimeEnd = CycleTimer::currentSeconds();
+        convAccTime += convTimeEnd - convTimeStart;
         l3->forward(l2->output);
         l4->forward(l3->output);
         l5->forward(l4->output);
@@ -120,6 +124,7 @@ int main(int argc, char** argv) {
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
       printf("%d/%d: Accuracy %.2f%%, Time %.5f s\n", i, epoch_count, (float)correct/train_count*100, endTime-startTime);
+      printf("L1 & L2 Acc Forward time: %.5f s\n", convAccTime);
     }
 
     free(train_data);
@@ -145,22 +150,27 @@ int main(int argc, char** argv) {
     float* device_test_data;
     cudaMalloc((void**)&device_test_data, sizeof(float) * TEST_SIZE * IMAGE_HEIGHT * IMAGE_WIDTH);
     cudaMemcpy(device_test_data, test_data, sizeof(float) * TEST_SIZE * IMAGE_HEIGHT * IMAGE_WIDTH, cudaMemcpyHostToDevice);
- 
-    cudaMemset(device_correct, 0, sizeof(int)); 
+
+    cudaMemset(device_correct, 0, sizeof(int));
+    double convAccTime = 0;
     double startTime = CycleTimer::currentSeconds();
     for (int j = 0; j < test_count; j++) {
       // forward
+      double convTimeStart = CycleTimer::currentSeconds();
       l1->forward(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
       l2->forward(l1->output);
+      double convTimeEnd = CycleTimer::currentSeconds();
+      convAccTime += convTimeEnd - convTimeStart;
       l3->forward(l2->output);
       l4->forward(l3->output);
       l5->forward(l4->output);
-      
+
       getCorrect(test_label[j], l5->output, l5->error, l5->out_channels, device_correct);
     }
     double endTime = CycleTimer::currentSeconds();
     cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
     printf("Accuracy %.2f%%, Time %.5f s\n", (float)correct/test_count*100, endTime-startTime);
+    printf("L1 & L2 Acc Forward time: %.5f s\n", convAccTime);
 
     free(test_data);
     free(test_label);

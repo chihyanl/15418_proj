@@ -372,7 +372,7 @@ Conv::~Conv() {
   cudaFree(u_weight);
 }
 
-void Conv::forward(float *) {
+void Conv::forward(float *input) {
   dim3 blockDim(BLOCK_SIZE, 1);
   dim3 gridDim((out_channels * height_out * width_out + blockDim.x - 1) /
                blockDim.x);
@@ -457,7 +457,7 @@ ConvFuse::ConvFuse(int in_channels, int mid_channels, int out_channels,
          "Weight=%d, Bias=%d\n",
          l1_h_out, l1_w_out, mid_channels,
          in_channels * l1_config.width * l1_config.height,
-         mid_channels * l1_config.height_out * l1_config.width_out,
+         mid_channels * l1_h_out * l1_w_out,
          l1_config.kernel_h, l1_config.kernel_w, l1_config.stride,
          l1_config.pad,
          mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w,
@@ -502,7 +502,7 @@ ConvFuse::ConvFuse(int in_channels, int mid_channels, int out_channels,
          "Weight=%d, Bias=%d\n",
          l2_h_out, l2_w_out, out_channels,
          mid_channels * l2_config.width * l2_config.height,
-         out_channels * l2_config.height_out * l2_config.width_out,
+         out_channels * l2_h_out * l2_w_out,
          l2_config.kernel_h, l2_config.kernel_w, l2_config.stride,
          l2_config.pad,
          out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w,
@@ -512,7 +512,7 @@ ConvFuse::ConvFuse(int in_channels, int mid_channels, int out_channels,
       (out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w +
        blockDim.x - 1) /
       blockDim.x);
-  float k =
+  k =
       sqrt(1.0f / (mid_channels * l2_config.kernel_h * l2_config.kernel_w));
   randomFloat<<<gridDim2, blockDim>>>(
       weight, -k, k,
@@ -543,9 +543,9 @@ void ConvFuse::forward(float *input) {
 
   cudaConvFusionForward<<<gridDim, blockDim>>>(
       in_channels, mid_channels, out_channels, in_height, in_width,
-      l1_config.kernel_h, l1_config.kerneh_w, l1_config.stride, l1_config.pad,
+      l1_config.kernel_h, l1_config.kernel_w, l1_config.stride, l1_config.pad,
       l1_h_out, l1_w_out, l2_config.kernel_h, l2_config.kernel_w,
-      l2_config.stride, l2_config.pad, l2_h_out, l2_w_out, intput,
+      l2_config.stride, l2_config.pad, l2_h_out, l2_w_out, input,
       mid_layer.output, output, mid_layer.weight, weight, mid_layer.bias, bias);
 }
 
@@ -557,7 +557,7 @@ void ConvFuse::backward(float *input, float *src_error) {
 
   dim3 blockDim(BLOCK_SIZE, 1);
   // TODO: what is proper griddim
-  dim3 gridDim((out_channels * l2_config.height_out * l2_config.width_out +
+  dim3 gridDim((out_channels * l2_h_out * l2_w_out +
                 blockDim.x - 1) /
                blockDim.x);
 
@@ -570,11 +570,11 @@ void ConvFuse::backward(float *input, float *src_error) {
       mid_layer.error, output, weight, u_weight, u_bias, error, src_error);
 }
 
-void ConvFusion::update(float rate) {
+void ConvFuse::update(float rate) {
   dim3 blockDim(BLOCK_SIZE, 1);
   // TODO: what is proper griddim
   dim3 gridDim(
-      (out_channels * in_channels * kernel_h * kernel_w + blockDim.x - 1) /
+      (out_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w + blockDim.x - 1) /
       blockDim.x);
 
   cudaConvFusionUpdate<<<gridDim, blockDim>>>(

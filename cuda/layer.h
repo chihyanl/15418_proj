@@ -23,23 +23,18 @@ class Conv : public Layer {
     void update(float rate);
 };
 
-struct ConvLayerConfig {
-  int height, width; // input width and height on the layer
-  int kernel_h, kernel_w, stride, pad;
-};
-
 class ConvFuse : public Layer {
   public:
-    int in_height, in_width, in_channels, mid_channels, out_channels, l1_h_out, l1_w_out, l2_h_out, l2_w_out;
-    Layer mid_layer;
+    Conv *l1;
+    Conv *l2;
 
-    ConvLayerConfig l1_config, l2_config;
-
-    explicit ConvFuse(int in_channels, int mid_channels, int out_channels, ConvLayerConfig &l1_config, ConvLayerConfig &l2_config);
+    explicit ConvFuse(Conv *l1, Conv *l2);
     ~ConvFuse();
     void forward(float* input);
-    void backward(float* input, float* src_error);
+    void backward(float *input, float* src_error);
     void update(float rate);
+    float *output();
+    float *error();
 };
 
 class Linear : public Layer {

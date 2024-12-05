@@ -209,29 +209,58 @@ __global__ void cudaConvFusionForward(
     int l2_pad, int l2_h_out, int l2_w_out, float *input, float *l1_output,
     float *l2_output, float *l1_weight, float *l2_weight, float *l1_bias,
     float *l2_bias) {
-  // TODO: implment this lol this is a lotta params
-  return;
-}
 
-__global__ void cudaConvFusionBackward(
-    int in_height, int in_width, int in_channels, int mid_channels,
-    int out_channels, int l1_kernel_h, int l1_kernel_w, int l1_stride,
-    int l1_pad, int l1_h_out, int l1_w_out, int l2_kernel_h, int l2_kernel_w,
-    int l2_stride, int l2_pad, int l2_h_out, int l2_w_out, float *input,
-    float *l1_output, float *l1_weight, float *l1_u_weight, float *l1_u_bias,
-    float *l1_error, float *l2_output, float *l2_weight, float *l2_u_weight,
-    float *l2_u_bias, float *l2_error, float *src_error) {
-  // TODO: implement this
-  return;
-}
+  int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+  int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+  int dst_channel = threadIdx.z;
 
-__global__ void cudaConvFusionUpdate(
-    int in_channels, int mid_channels, int out_channels, int l1_kernel_h,
-    int l1_kernel_w, int l2_kernel_h, int l2_kernel_w, float *l1_weight,
-    float *l1_u_weight, float *l1_bias, float *l1_u_bias, float *l2_weight,
-    float *l2_u_weight, float *l2_bias, float *l2_u_bias, float rate) {
-  // TODO: implement this
-  return;
+  int mid_w = l2_kernel_w + (blockDim.x * l2_stride);
+  int mid_h = l2_kernel_h + (blockDim.y * l2_stride);
+  __shared__ float shared_cache[mid_w * mid_h * mid_channels];
+
+  int this_block_mid_x_start = blockIdx.x * blockDim.x * l2_stride - l2_pad;
+  int this_block_mid_y_start = blockIdx.y * blockDim.y * l2_stride - l2_pad;
+  int mid_x_start = this_block_mid_x_start + threadIdx.x * l2_stride - l2_pad;
+  int mid_y_start = this_block_mid_y_start + threadIdx.y * l2_stride - l2_pad;
+
+  int this_block_in_x_start = this_block_mid_x_start * l1_stride - l1_pad;
+  int this_block_in_y_start = this_block_mid_y_start * l1_stride - l1_pad;
+  int in_x_start = mid_x_start * l1_stride - l1_pad;
+  int in_y_start = mid_y_start * l1_stride - l1_pad;
+
+  // phase 1: compute all middle layer output
+  // TODO: we should spread out workload amongst the threads
+
+  __syncthreads();
+  if (out_x >= l2_w_out || out_y >= l2_h_out)
+    return;
+
+  // phase 2: use the shared array to compute the final layer
+  int dstIdx_base = dst_channel * mid_channels * l2_kernel_h * l2_kernel_w;
+
+  float sum = l2_bias[dst_channel];
+  for (int src_channel = 0; src_channel < mid_channels; src_channel++) {
+    int dstIdx_base2 = src_channel * l2_kernel_h * l2_kernel_w;
+    int srcIdx_base =
+        src_channel * mid_w * mid_h; // we increment by the cache size instead
+                                     // of mid layer's width and height
+    for (int dy = 0; dy < l2_kernel_h; dy++) {
+      int y = mid_y_start + dy;
+      int srcIdx = srcIdx_base + y * mid_w;
+      int dstIdx = dstIdx_base + dstIdx_base2 + dy * l2_kernel_w;
+      for (int dx = 0; dx < l2_kernel_w; dx++) {
+        int x = mid_x_start + dx;
+        if (x >= 0 && x < l2_w_out && y >= 0 && y < l2_h_out) {
+          sum += shared_cache[srcIdx + x] * l2_weight[dstIdx + dx];
+        }
+      }
+    }
+  }
+
+  sum = (sum > 0) ? sum : 0;
+  int outIdx = out_y * l2_w_out + out_x;
+  // TODO: assert? this should be within bounds
+  output[outIdx] = sum;
 }
 
 __global__ void cudaLinearForward(int in_channels, int out_channels,
@@ -408,180 +437,41 @@ void Conv::update(float rate) {
                                         u_bias, rate);
 }
 
-ConvFuse::ConvFuse(int in_channels, int mid_channels, int out_channels,
-                   ConvLayerConfig &l1_config, ConvLayerConfig &l2_config)
-    : in_height(l1_config.height), in_width(l1_config.width),
-      in_channels(in_channels), mid_channels(mid_channels),
-      out_channels(out_channels), l1_config(l1_config), l2_config(l2_config),
-      l1_h_out((l1_config.height + 2 * l1_config.pad - l1_config.kernel_h) /
-                   l1_config.stride +
-               1),
-      l1_w_out((l1_config.width + 2 * l1_config.pad - l1_config.kernel_w) /
-                   l1_config.stride +
-               1),
-      l2_h_out((l2_config.height + 2 * l2_config.pad - l2_config.kernel_h) /
-                   l2_config.stride +
-               1),
-      l2_w_out((l2_config.width + 2 * l2_config.pad - l2_config.kernel_w) /
-                   l2_config.stride +
-               1) {
-
-  // All memory needed for first layer
-  cudaMalloc(&mid_layer.output,
-             sizeof(float) * mid_channels * l1_h_out * l1_w_out);
-  cudaMalloc(&mid_layer.bias, sizeof(float) * mid_channels);
-  cudaMalloc(&mid_layer.weight, sizeof(float) * mid_channels * in_channels *
-                                    l1_config.kernel_h * l1_config.kernel_w);
-
-  cudaMemset(mid_layer.output, 0,
-             sizeof(float) * mid_channels * l1_h_out * l1_w_out);
-  cudaMemset(mid_layer.bias, 0, sizeof(float) * mid_channels);
-  cudaMemset(mid_layer.weight, 0,
-             sizeof(float) * mid_channels * in_channels * l1_config.kernel_h *
-                 l1_config.kernel_w);
-
-  cudaMalloc(&mid_layer.u_bias, sizeof(float) * mid_channels);
-  cudaMalloc(&mid_layer.u_weight, sizeof(float) * mid_channels * in_channels *
-                                      l1_config.kernel_h * l1_config.kernel_w);
-  cudaMalloc(&mid_layer.error,
-             sizeof(float) * mid_channels * l1_h_out * l1_w_out);
-
-  cudaMemset(mid_layer.u_bias, 0, sizeof(float) * mid_channels);
-  cudaMemset(mid_layer.u_weight, 0,
-             sizeof(float) * mid_channels * in_channels * l1_config.kernel_h *
-                 l1_config.kernel_w);
-  cudaMemset(mid_layer.error, 0,
-             sizeof(float) * mid_channels * l1_h_out * l1_w_out);
-
-  printf("ConvFusionL1=%dx%dx%d (%d->%d), Kernel=%dx%d, Stride=%d, Pad=%d, "
-         "Weight=%d, Bias=%d\n",
-         l1_h_out, l1_w_out, mid_channels,
-         in_channels * l1_config.width * l1_config.height,
-         mid_channels * l1_h_out * l1_w_out,
-         l1_config.kernel_h, l1_config.kernel_w, l1_config.stride,
-         l1_config.pad,
-         mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w,
-         mid_channels);
-
-  dim3 blockDim(BLOCK_SIZE, 1);
-  dim3 gridDim(
-      (mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w +
-       blockDim.x - 1) /
-      blockDim.x);
-  float k =
-      sqrt(1.0f / (in_channels * l1_config.kernel_h * l1_config.kernel_w));
-  randomFloat<<<gridDim, blockDim>>>(
-      mid_layer.weight, -k, k,
-      mid_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w);
-  randomFloat<<<gridDim, blockDim>>>(mid_layer.bias, -k, k, mid_channels);
-
-  // All memory needed for final layer
-  cudaMalloc(&output, sizeof(float) * out_channels * l2_h_out * l2_w_out);
-  cudaMalloc(&bias, sizeof(float) * out_channels);
-  cudaMalloc(&weight, sizeof(float) * out_channels * mid_channels *
-                          l2_config.kernel_h * l2_config.kernel_w);
-
-  cudaMemset(output, 0, sizeof(float) * out_channels * l2_h_out * l2_w_out);
-  cudaMemset(bias, 0, sizeof(float) * out_channels);
-  cudaMemset(weight, 0,
-             sizeof(float) * out_channels * mid_channels * l2_config.kernel_h *
-                 l2_config.kernel_w);
-
-  cudaMalloc(&u_bias, sizeof(float) * out_channels);
-  cudaMalloc(&u_weight, sizeof(float) * out_channels * mid_channels *
-                            l2_config.kernel_h * l2_config.kernel_w);
-  cudaMalloc(&error, sizeof(float) * out_channels * l2_h_out * l2_w_out);
-
-  cudaMemset(u_bias, 0, sizeof(float) * out_channels);
-  cudaMemset(u_weight, 0,
-             sizeof(float) * out_channels * mid_channels * l2_config.kernel_h *
-                 l2_config.kernel_w);
-  cudaMemset(error, 0, sizeof(float) * out_channels * l2_h_out * l2_w_out);
-
-  printf("ConvFusionL2=%dx%dx%d (%d->%d), Kernel=%dx%d, Stride=%d, Pad=%d, "
-         "Weight=%d, Bias=%d\n",
-         l2_h_out, l2_w_out, out_channels,
-         mid_channels * l2_config.width * l2_config.height,
-         out_channels * l2_h_out * l2_w_out,
-         l2_config.kernel_h, l2_config.kernel_w, l2_config.stride,
-         l2_config.pad,
-         out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w,
-         out_channels);
-
-  dim3 gridDim2(
-      (out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w +
-       blockDim.x - 1) /
-      blockDim.x);
-  k =
-      sqrt(1.0f / (mid_channels * l2_config.kernel_h * l2_config.kernel_w));
-  randomFloat<<<gridDim2, blockDim>>>(
-      weight, -k, k,
-      out_channels * mid_channels * l2_config.kernel_h * l2_config.kernel_w);
-  randomFloat<<<gridDim2, blockDim>>>(bias, -k, k, out_channels);
-}
+ConvFuse::ConvFuse(Conv *l1, Conv *l2) : l1(l1), l2(l2) {}
 
 ConvFuse::~ConvFuse() {
-  cudaFree(mid_layer.output);
-  cudaFree(mid_layer.bias);
-  cudaFree(mid_layer.weight);
-  cudaFree(mid_layer.error);
-  cudaFree(mid_layer.u_bias);
-  cudaFree(mid_layer.u_weight);
-  cudaFree(output);
-  cudaFree(bias);
-  cudaFree(weight);
-  cudaFree(error);
-  cudaFree(u_bias);
-  cudaFree(u_weight);
+  ~(*l1);
+  ~(*l2);
 }
 
 void ConvFuse::forward(float *input) {
-  dim3 blockDim(BLOCK_SIZE, 1);
-  // TODO: what is proper griddim
-  dim3 gridDim((out_channels * l2_h_out * l2_w_out + blockDim.x - 1) /
-               blockDim.x);
+  // hard coded to match l2 output in main - 4 * 4 image block with 16 channels
+  dim3 blockDim(4, 4, 16);
+  dim3 gridDim((l2->width_out + blockDim.x - 1) / blockDim.x,
+               (l2->height_out + blockDim.y - 1) / blockDim.y);
 
-  cudaConvFusionForward<<<gridDim, blockDim>>>(
-      in_channels, mid_channels, out_channels, in_height, in_width,
-      l1_config.kernel_h, l1_config.kernel_w, l1_config.stride, l1_config.pad,
-      l1_h_out, l1_w_out, l2_config.kernel_h, l2_config.kernel_w,
-      l2_config.stride, l2_config.pad, l2_h_out, l2_w_out, input,
-      mid_layer.output, output, mid_layer.weight, weight, mid_layer.bias, bias);
+  // cudaConvFusionForward<<<gridDim, blockDim>>>(
+  //     in_channels, mid_channels, out_channels, in_height, in_width,
+  //     l1_config.kernel_h, l1_config.kernel_w, l1_config.stride,
+  //     l1_config.pad, l1_h_out, l1_w_out, l2_config.kernel_h,
+  //     l2_config.kernel_w, l2_config.stride, l2_config.pad, l2_h_out,
+  //     l2_w_out, input, mid_layer.output, output, mid_layer.weight, weight,
+  //     mid_layer.bias, bias);
 }
 
-void ConvFuse::backward(float *input, float *src_error) {
-  if (src_error != nullptr) {
-    cudaMemset(src_error, 0,
-               sizeof(float) * in_channels * in_width * in_height);
-  }
-
-  dim3 blockDim(BLOCK_SIZE, 1);
-  // TODO: what is proper griddim
-  dim3 gridDim((out_channels * l2_h_out * l2_w_out +
-                blockDim.x - 1) /
-               blockDim.x);
-
-  cudaConvFusionBackward<<<gridDim, blockDim>>>(
-      in_height, in_width, in_channels, mid_channels, out_channels,
-      l1_config.kernel_h, l1_config.kernel_w, l1_config.stride, l1_config.pad,
-      l1_h_out, l1_w_out, l2_config.kernel_h, l2_config.kernel_w,
-      l2_config.stride, l2_config.pad, l2_h_out, l2_w_out, input,
-      mid_layer.output, mid_layer.weight, mid_layer.u_weight, mid_layer.u_bias,
-      mid_layer.error, output, weight, u_weight, u_bias, error, src_error);
+void ConvFuse::backward(float *input, float *src_error, float *train_input) {
+  l2->backward(l1->output, l1->error);
+  // Assume fusion layer is the first layer
+  l1->backward(train_input, nullptr);
 }
+
+float *ConvFuse::output() { return l2->output; }
+
+float *ConvFuse::error() { return l2->error; }
 
 void ConvFuse::update(float rate) {
-  dim3 blockDim(BLOCK_SIZE, 1);
-  // TODO: what is proper griddim
-  dim3 gridDim(
-      (out_channels * in_channels * l1_config.kernel_h * l1_config.kernel_w + blockDim.x - 1) /
-      blockDim.x);
-
-  cudaConvFusionUpdate<<<gridDim, blockDim>>>(
-      in_channels, mid_channels, out_channels, l1_config.kernel_h,
-      l1_config.kernel_w, l2_config.kernel_h, l2_config.kernel_w,
-      mid_layer.weight, mid_layer.u_weight, mid_layer.bias, mid_layer.u_bias,
-      weight, u_weight, bias, u_bias, rate);
+  l1->update(rate);
+  l2->update(rate);
 }
 
 Linear::Linear(int in_channels, int out_channels)

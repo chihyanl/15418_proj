@@ -10,6 +10,7 @@
 
 #define SEED 0
 #define BLOCK_SIZE 256
+#define SHARED_CACHE_SIZE 600
 
 int nextPow2(int n) {
   n--;
@@ -215,19 +216,11 @@ __global__ void cudaConvFusionForward(
   int mid_w = l2_kernel_w + ((blockDim.x - 1) * l2_stride);
   int mid_h = l2_kernel_h + ((blockDim.y - 1) * l2_stride);
   // hard coding as we need constants - mid_w = 10, mid_h = 10, mid_channels = 6
-  int shared_cache_size = 600;
-  __shared__ float shared_cache[shared_cache_size];
+  int shared_cache_size = SHARED_CACHE_SIZE;
+  __shared__ float shared_cache[SHARED_CACHE_SIZE];
 
   int this_block_mid_x_start = blockIdx.x * blockDim.x * l2_stride - l2_pad;
   int this_block_mid_y_start = blockIdx.y * blockDim.y * l2_stride - l2_pad;
-
-  int mid_x_start = this_block_mid_x_start + threadIdx.x * l2_stride - l2_pad;
-  int mid_y_start = this_block_mid_y_start + threadIdx.y * l2_stride - l2_pad;
-
-  int this_block_in_x_start = this_block_mid_x_start * l1_stride - l1_pad;
-  int this_block_in_y_start = this_block_mid_y_start * l1_stride - l1_pad;
-  int in_x_start = mid_x_start * l1_stride - l1_pad;
-  int in_y_start = mid_y_start * l1_stride - l1_pad;
 
   // phase 1: compute all middle layer output
   for (int i = threadIdx.x; i < shared_cache_size; i += BLOCK_SIZE) {
@@ -277,8 +270,6 @@ __global__ void cudaConvFusionForward(
 
   // phase 2: use the shared array to compute the final layer
   {
-    int dst_x = out_x;
-    int dst_y = out_y;
     int dst_chan = threadIdx.z;
 
     // No need to add offset here as we already did this by multiplying block
@@ -492,8 +483,8 @@ void Conv::update(float rate) {
 ConvFuse::ConvFuse(Conv *l1, Conv *l2) : l1(l1), l2(l2) {}
 
 ConvFuse::~ConvFuse() {
-  ~(*l1);
-  ~(*l2);
+    l1->~Conv();
+    l2->~Conv();
 }
 
 void ConvFuse::forward(float *input) {
@@ -510,7 +501,7 @@ void ConvFuse::forward(float *input) {
   cudaConvFusionForward<<<gridDim, blockDim>>>(
       l1->in_channels, l1->out_channels, l2->out_channels, l1->height,
       l1->width, l1->kernel_h, l1->kernel_w, l1->stride, l1->pad, l1_h_out,
-      l1_w_out, l2->kernel_h, l2->kernel_2, l2->stride, l2->pad, l2_h_out,
+      l1_w_out, l2->kernel_h, l2->kernel_w, l2->stride, l2->pad, l2_h_out,
       l2_w_out, input, l2->output, l1->weight, l2->weight, l1->bias, l2->bias);
 }
 

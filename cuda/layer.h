@@ -31,7 +31,7 @@ class ConvFuse : public Layer {
     explicit ConvFuse(Conv *l1, Conv *l2);
     ~ConvFuse();
     void forward(float* input);
-    void backward(float *input, float* src_error);
+    void backward(float* input, float* src_error, float* train_input);
     void update(float rate);
     float *output();
     float *error();

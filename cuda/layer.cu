@@ -505,7 +505,7 @@ void ConvFuse::forward(float *input) {
       l2_w_out, input, l2->output, l1->weight, l2->weight, l1->bias, l2->bias);
 }
 
-void ConvFuse::backward(float *input, float *src_error, float *train_input) {
+void ConvFuse::backward(float *train_input) {
   l2->backward(l1->output, l1->error);
   // Assume fusion layer is the first layer
   l1->backward(train_input, nullptr);

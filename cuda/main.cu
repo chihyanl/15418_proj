@@ -104,7 +104,8 @@ int main(int argc, char** argv) {
         // forward
         double convTimeStart = CycleTimer::currentSeconds();
         if (fuse) {
-            lfuse->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
+            // lfuse->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
+            lfuse->forward2(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
         } else {
             l1->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
             l2->forward(l1->output);
@@ -180,11 +181,16 @@ int main(int argc, char** argv) {
     for (int j = 0; j < test_count; j++) {
       // forward
       double convTimeStart = CycleTimer::currentSeconds();
-      l1->forward(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
-      l2->forward(l1->output);
+      if (fuse) {
+        lfuse->forward(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
+      } else {
+        l1->forward(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
+        l2->forward(l1->output);
+      }
       double convTimeEnd = CycleTimer::currentSeconds();
       convAccTime += convTimeEnd - convTimeStart;
-      l3->forward(l2->output);
+      float *l2_out = fuse ? lfuse->output() : l2->output;
+      l3->forward(l2_out);
       l4->forward(l3->output);
       l5->forward(l4->output);
 

@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "layer.h"
+#define BLOCK_SIZE_MAX 2048
 
 __device__ __inline__ void cudaCopyInput(float* src, float* dst, int in_channels, int height, int width, int tile_h, int tile_w, int src_x_base, int src_y_base) {
 
@@ -183,8 +184,8 @@ void convFuseForward2(float* input, Conv* l1, Conv* l2, int tile_h, int tile_w) 
   int tile_w1 = (tile_w2 - 1) * l1->stride + l1->kernel_w;
   int thread_count = max(l1->out_channels * tile_h2 * tile_w2, l2->out_channels * tile_h3 * tile_w3);
 
-  if (thread_count > BLOCK_SIZE) {
-    std::cerr << "ERROR: Layer fusion Tile_Width*Tile_Height*Out_Channels in any layer cannot exceed " << BLOCK_SIZE << "\n";
+  if (thread_count > BLOCK_SIZE_MAX) {
+    std::cerr << "ERROR: 2 layer fusion Tile_Width*Tile_Height*Out_Channels in any layer cannot exceed " << BLOCK_SIZE_MAX << "\n";
     return;
   }
 
@@ -219,8 +220,8 @@ void convFuseForward3(float* input, Conv* l1, Conv* l2, Conv* l3, int tile_h, in
   int tile_w1 = (tile_w2 - 1) * l1->stride + l1->kernel_w;
   int thread_count = max(max(l1->out_channels * tile_h2 * tile_w2, l2->out_channels * tile_h3 * tile_w3), l3->out_channels * tile_h4 * tile_w4);
 
-  if (thread_count > BLOCK_SIZE) {
-    std::cerr << "ERROR: Layer fusion Tile_Width*Tile_Height*Out_Channels in any layer cannot exceed " << BLOCK_SIZE << "\n";
+  if (thread_count > BLOCK_SIZE_MAX) {
+    std::cerr << "ERROR: 3 layer fusion Tile_Width*Tile_Height*Out_Channels in any layer cannot exceed " << BLOCK_SIZE_MAX << "\n";
     return;
   }
 
@@ -259,8 +260,8 @@ void convFuseForward4(float* input, Conv* l1, Conv* l2, Conv* l3, Conv* l4, int 
   int tile_w1 = (tile_w2 - 1) * l1->stride + l1->kernel_w;
   int thread_count = max(max(max(l1->out_channels * tile_h2 * tile_w2, l2->out_channels * tile_h3 * tile_w3), l3->out_channels * tile_h4 * tile_w4), l4->out_channels * tile_h5 * tile_w5);
 
-  if (thread_count > BLOCK_SIZE) {
-    std::cerr << "ERROR: Layer fusion Tile_Width*Tile_Height*Out_Channels in any layer cannot exceed " << BLOCK_SIZE << "\n";
+  if (thread_count > BLOCK_SIZE_MAX) {
+    std::cerr << "ERROR: 4 layer fusion Tile_Width*Tile_Height*Out_Channels in any layer cannot exceed " << BLOCK_SIZE_MAX << "\n";
     return;
   }
 

@@ -104,8 +104,7 @@ int main(int argc, char** argv) {
         // forward
         double convTimeStart = CycleTimer::currentSeconds();
         if (fuse) {
-            // lfuse->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
-            lfuse->forward2(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
+            lfuse->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
         } else {
             l1->forward(&device_train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
             l2->forward(l1->output);

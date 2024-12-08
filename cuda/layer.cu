@@ -10,7 +10,7 @@
 
 #define SEED 0
 #define BLOCK_SIZE 256
-#define SHARED_CACHE_SIZE 600
+#define SHARED_CACHE_SIZE 1944
 
 #define K_PRINT(...) if (print) printf(__VA_ARGS__);
 
@@ -212,115 +212,106 @@ __global__ void cudaConvFusionForward(
     int l2_pad, int l2_h_out, int l2_w_out, float *input, float *l1_output, float *l2_output,
     float *l1_weight, float *l2_weight, float *l1_bias, float *l2_bias) {
 
-  // indices corresponding to the final layer x,y we're targetting
   int out_x = blockIdx.x * blockDim.x + threadIdx.x;
   int out_y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  bool print = blockIdx.x == 0 && blockIdx.y == 0;
+  // required middle layer region for this block
+  int mid_start_x = (blockIdx.x * blockDim.x * l2_stride) - l2_pad;
+  int mid_start_y = (blockIdx.y * blockDim.y * l2_stride) - l2_pad;
 
-  int mid_w = l2_kernel_w + ((blockDim.x - 1) * l2_stride);
-  int mid_h = l2_kernel_h + ((blockDim.y - 1) * l2_stride);
-  // hard coding as we need constants - mid_w = 10, mid_h = 10, mid_channels = 6
-  int shared_cache_size = SHARED_CACHE_SIZE;
+  // required cache size for this block
+  int mid_w = (blockDim.x - 1) * l2_stride + l2_kernel_w;
+  int mid_h = (blockDim.y - 1) * l2_stride + l2_kernel_h;
+
+  // shared cache size is hard coded for our archiecture
   __shared__ float shared_cache[SHARED_CACHE_SIZE];
 
-  int this_block_mid_x_start = blockIdx.x * blockDim.x * l2_stride - l2_pad;
-  int this_block_mid_y_start = blockIdx.y * blockDim.y * l2_stride - l2_pad;
+  // Phase 1: middle layer computation
+  int thread_idx = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * (blockDim.x * blockDim.y);
 
-  int start_i = threadIdx.x * 4 * 16 + threadIdx.y * 16 + threadIdx.z;
+  for (int i = thread_idx; i < mid_channels * mid_w * mid_h; i += blockDim.x * blockDim.y * blockDim.z) {
+    int local_x = i % mid_w;
+    int local_y = (i / mid_w) % mid_h;
+    int chan = i / (mid_w * mid_h);
 
-  // phase 1: compute all middle layer output
-  for (int i = start_i; i < shared_cache_size; i += BLOCK_SIZE) {
-    // indices corresponding to the middle cache layer x,y we're targetting
-    // from the perspective of the cache
-    int dst_x = (i % (mid_w * mid_h)) % mid_w;
-    int dst_y = (i % (mid_w * mid_h)) / mid_w;
-    int dst_chan = i / (mid_w * mid_h);
+    if (chan >= mid_channels) continue;
 
-    // since the cache indices will always range from 0-599 regardless of the
-    // block we need to add this block's middle layer x/y start
-    int real_dst_x = dst_x + this_block_mid_x_start;
-    int real_dst_y = dst_y + this_block_mid_y_start;
-    int real_i = dst_chan * l1_w_out * l1_h_out + real_dst_y * l1_w_out + real_dst_x;
+    int global_x = mid_start_x + local_x;
+    int global_y = mid_start_y + local_y;
 
-    float sum = l1_bias[dst_chan];
+    float sum = l1_bias[chan];
 
-    int src_start_x = real_dst_x * l1_stride - l1_pad;
-    int src_start_y = real_dst_y * l1_stride - l1_pad;
-    // K_PRINT("src_start_x: %d, src_start_y: %d, real_dst_x: %d, real_dst_y: %d\n", src_start_x, src_start_y, real_dst_x, real_dst_y);
-    for (int dx = 0; dx < l1_kernel_w; dx++) {
-      int src_x = src_start_x + dx;
-      if (src_x < 0 || src_x >= in_width)
-        continue;
+    // First convolution
+    for (int ky = 0; ky < l1_kernel_h; ky++) {
+      int in_y = global_y * l1_stride - l1_pad + ky;
+      if (in_y < 0 || in_y >= in_height) continue;
 
-      for (int dy = 0; dy < l1_kernel_h; dy++) {
-        int src_y = src_start_y + dy;
-        if (src_y < 0 || src_y >= in_height)
-          continue;
+      for (int kx = 0; kx < l1_kernel_w; kx++) {
+        int in_x = global_x * l1_stride - l1_pad + kx;
+        if (in_x < 0 || in_x >= in_width) continue;
 
-        for (int src_chan = 0; src_chan < in_channels; src_chan++) {
-          int srcIdx_base = src_chan * in_width * in_height;
-          int srcIdx = srcIdx_base + src_y * in_width + src_x;
-
-          int dstIdx_base = dst_chan * in_channels * l1_kernel_h * l1_kernel_w;
-          int dstIdx_base2 = src_chan * l1_kernel_h * l1_kernel_w;
-          int dstIdx = dstIdx_base + dstIdx_base2 + dy * l1_kernel_w + dx;
-          // K_PRINT("src_x: %d, src_y: %d\n", src_x, src_y);
-
-          sum += input[srcIdx] * l1_weight[dstIdx];
+        for (int c = 0; c < in_channels; c++) {
+          float in_val = input[c * in_height * in_width + in_y * in_width + in_x];
+          float w_val = l1_weight[(chan * in_channels + c) * l1_kernel_h * l1_kernel_w +
+                                ky * l1_kernel_w + kx];
+          sum += in_val * w_val;
         }
       }
     }
 
-    if (real_dst_x >= 0 && real_dst_x < l1_w_out && real_dst_y >= 0 && real_dst_y < l1_h_out) {
-        sum = (sum > 0) ? sum : 0;
-        shared_cache[i] = sum;
-        l1_output[real_i] = sum;
-    }
+    sum = (sum > 0) ? sum : 0; // relu
+    shared_cache[i] = sum;
 
+    // Store to global memory if within bounds
+    if (global_x >= 0 && global_x < l1_w_out && global_y >= 0 && global_y < l1_h_out) {
+      l1_output[chan * l1_h_out * l1_w_out + global_y * l1_w_out + global_x] = sum;
+    }
   }
 
   __syncthreads();
-  if (out_x >= l2_w_out || out_y >= l2_h_out)
+
+  if (out_x >= l2_w_out || out_y >= l2_h_out || threadIdx.z >= out_channels)
     return;
 
-  // phase 2: use the shared array to compute the final layer
-  {
-    int dst_chan = threadIdx.z;
+  // phase 2: compute output using stride 2
+  int out_chan = threadIdx.z;
+  float sum = l2_bias[out_chan];
 
-    // No need to add offset here as we already did this by multiplying block
-    // dim
-    float sum = l2_bias[dst_chan];
+  // Input position for this output = output * stride
+  int base_x = out_x * l2_stride;
+  int base_y = out_y * l2_stride;
 
-    int src_start_x = blockIdx.x * l2_stride - l2_pad;
-    int src_start_y = blockIdx.y * l2_stride - l2_pad;
-    for (int dx = 0; dx < l2_kernel_w; dx++) {
-      int src_x = src_start_x + dx;
-      if (src_x < 0 || src_x >= mid_w)
+  for (int ky = 0; ky < l2_kernel_h; ky++) {
+    int mid_y = base_y + ky;
+    if (mid_y < 0 || mid_y >= l1_h_out) continue;
+
+    for (int kx = 0; kx < l2_kernel_w; kx++) {
+      int mid_x = base_x + kx;
+      if (mid_x < 0 || mid_x >= l1_w_out) continue;
+
+      // Convert to local coordinates in shared memory
+      int local_x = mid_x - mid_start_x;
+      int local_y = mid_y - mid_start_y;
+
+      if (local_x < 0 || local_x >= mid_w || local_y < 0 || local_y >= mid_h)
         continue;
 
-      for (int dy = 0; dy < l2_kernel_h; dy++) {
-        int src_y = src_start_y + dy;
-        if (src_y < 0 || src_y >= mid_h)
-          continue;
+      for (int c = 0; c < mid_channels; c++) {
+        int cache_idx = c * mid_w * mid_h + local_y * mid_w + local_x;
+        if (cache_idx >= SHARED_CACHE_SIZE) continue;
 
-        for (int src_chan = 0; src_chan < mid_channels; src_chan++) {
-          int srcIdx = src_y * mid_w + src_x;
-
-          int dstIdx_base = dst_chan * mid_channels * l2_kernel_h * l2_kernel_w;
-          int dstIdx_base2 = src_chan * l2_kernel_h * l2_kernel_w;
-          int dstIdx = dstIdx_base + dstIdx_base2 + dy * l2_kernel_w + dx;
-
-          sum += shared_cache[srcIdx] * l2_weight[dstIdx];
-        }
+        float cache_val = shared_cache[cache_idx];
+        float w_val = l2_weight[(out_chan * mid_channels + c) * l2_kernel_h * l2_kernel_w +
+                               ky * l2_kernel_w + kx];
+        sum += cache_val * w_val;
       }
     }
-
-    sum = (sum > 0) ? sum : 0;
-    int outIdx = dst_chan * (l2_h_out * l2_w_out) + out_y * l2_w_out + out_x;
-    l2_output[outIdx] = sum;
   }
+
+  sum = (sum > 0) ? sum : 0; // relu
+  l2_output[out_chan * l2_h_out * l2_w_out + out_y * l2_w_out + out_x] = sum;
 }
+
 
 __global__ void cudaLinearForward(int in_channels, int out_channels,
                                   float *input, float *weight, float *bias,

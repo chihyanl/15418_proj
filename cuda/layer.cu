@@ -250,12 +250,12 @@ __global__ void cudaConvFusionForward(
     // K_PRINT("src_start_x: %d, src_start_y: %d, real_dst_x: %d, real_dst_y: %d\n", src_start_x, src_start_y, real_dst_x, real_dst_y);
     for (int dx = 0; dx < l1_kernel_w; dx++) {
       int src_x = src_start_x + dx;
-      if (src_x < 0 || src_x > in_width)
+      if (src_x < 0 || src_x >= in_width)
         continue;
 
       for (int dy = 0; dy < l1_kernel_h; dy++) {
         int src_y = src_start_y + dy;
-        if (src_y < 0 || src_y > in_height)
+        if (src_y < 0 || src_y >= in_height)
           continue;
 
         for (int src_chan = 0; src_chan < in_channels; src_chan++) {
@@ -272,9 +272,12 @@ __global__ void cudaConvFusionForward(
       }
     }
 
-    sum = (sum > 0) ? sum : 0;
-    shared_cache[i] = sum;
-    l1_output[real_i] = sum;
+    if (real_dst_x >= 0 && real_dst_x < l1_w_out && real_dst_y >= 0 && real_dst_y < l1_h_out) {
+        sum = (sum > 0) ? sum : 0;
+        shared_cache[i] = sum;
+        l1_output[real_i] = sum;
+    }
+
   }
 
   __syncthreads();
@@ -293,12 +296,12 @@ __global__ void cudaConvFusionForward(
     int src_start_y = blockIdx.y * l2_stride - l2_pad;
     for (int dx = 0; dx < l2_kernel_w; dx++) {
       int src_x = src_start_x + dx;
-      if (src_x < 0 || src_x > mid_w)
+      if (src_x < 0 || src_x >= mid_w)
         continue;
 
       for (int dy = 0; dy < l2_kernel_h; dy++) {
         int src_y = src_start_y + dy;
-        if (src_y < 0 || src_y > mid_h)
+        if (src_y < 0 || src_y >= mid_h)
           continue;
 
         for (int src_chan = 0; src_chan < mid_channels; src_chan++) {
@@ -314,7 +317,7 @@ __global__ void cudaConvFusionForward(
     }
 
     sum = (sum > 0) ? sum : 0;
-    int outIdx = out_y * l2_w_out + out_x;
+    int outIdx = dst_chan * (l2_h_out * l2_w_out) + out_y * l2_w_out + out_x;
     l2_output[outIdx] = sum;
   }
 }

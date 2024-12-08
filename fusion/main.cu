@@ -190,6 +190,7 @@ int main(int argc, char** argv) {
       printf("L1 Time %.5f s, L2 Time %.5f s, L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1Time, l2Time, l3Time, l4Time, l5Time, resultTime);
     }
     { // 2 Layers Fused
+      correct = 0;
       cudaMemset(device_correct, 0, sizeof(int));
       double l1l2Time = 0;
       double l3Time = 0;
@@ -228,6 +229,7 @@ int main(int argc, char** argv) {
       printf("L1+L2 Time %.5f s, L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2Time, l3Time, l4Time, l5Time, resultTime);
     }
     { // 3 Layers Fused
+      correct = 0;
       cudaMemset(device_correct, 0, sizeof(int));
       double l1l2l3Time = 0;
       double l4Time = 0;
@@ -254,8 +256,6 @@ int main(int argc, char** argv) {
         l4Time += l4EndTime - l4StartTime;
         l5Time += l5EndTime - l5StartTime;
         resultTime += resultEndTime - resultStartTime;
-
-        getCorrect(test_label[j], l5->output, l5->error, l5->out_channels, device_correct);
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
@@ -263,6 +263,7 @@ int main(int argc, char** argv) {
       printf("L1+L2+L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2l3Time, l4Time, l5Time, resultTime);
     }
     { // 4 Layers Fused
+      correct = 0;
       cudaMemset(device_correct, 0, sizeof(int));
       double l1l2l3l4Time = 0;
       double l5Time = 0;
@@ -284,8 +285,6 @@ int main(int argc, char** argv) {
         l1l2l3l4Time += l1l2l3l4EndTime - l1l2l3l4StartTime;
         l5Time += l5EndTime - l5StartTime;
         resultTime += resultEndTime - resultStartTime;
-
-        getCorrect(test_label[j], l5->output, l5->error, l5->out_channels, device_correct);
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
@@ -293,6 +292,7 @@ int main(int argc, char** argv) {
       printf("L1+L2+L3+L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2l3l4Time, l5Time, resultTime);
     }
     { // 2x2 Layers Fused
+      correct = 0;
       cudaMemset(device_correct, 0, sizeof(int));
       double l1l2Time = 0;
       double l3l4Time = 0;
@@ -319,8 +319,6 @@ int main(int argc, char** argv) {
         l3l4Time += l3l4EndTime - l3l4StartTime;
         l5Time += l5EndTime - l5StartTime;
         resultTime += resultEndTime - resultStartTime;
-
-        getCorrect(test_label[j], l5->output, l5->error, l5->out_channels, device_correct);
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);

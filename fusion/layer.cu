@@ -9,7 +9,6 @@
 #include "layer.h"
 
 #define SEED 0
-#define BLOCK_SIZE 256
 
 int nextPow2(int n) {
     n--;

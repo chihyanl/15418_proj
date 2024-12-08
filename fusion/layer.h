@@ -1,4 +1,6 @@
 
+#define BLOCK_SIZE 1024
+
 void getCorrect(int label, float* output, float* error, int size, int* correct);
 
 class Layer {

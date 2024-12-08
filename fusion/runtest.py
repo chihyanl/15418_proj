@@ -49,9 +49,9 @@ if not os.path.isfile(EXE_PATH):
 res_dict = {}
 
 for i in range(args.iter):
-  print(f"{i+1}/{args.iter}")
   txt = subprocess.run(["./"+EXE_PATH, args.train, args.test], stdout=subprocess.PIPE).stdout.decode("utf-8").split("TESTING")[1].strip()
   parseResult(txt, res_dict)
+  print(f"{i+1}/{args.iter}")
 
 for key, val in res_dict.items():
   outputResult(args.outfile, key, val, args.iter)

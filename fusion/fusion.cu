@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "layer.h"
-#define BLOCK_SIZE_MAX 2048
+#define BLOCK_SIZE_MAX 1024
 
 __device__ __inline__ void cudaCopyInput(float* src, float* dst, int in_channels, int height, int width, int tile_h, int tile_w, int src_x_base, int src_y_base) {
 

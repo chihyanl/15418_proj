@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
-      printf("%d/%d: Accuracy %.2f%%, Time %.5f s\n", i, epoch_count, (float)correct/train_count*100, endTime-startTime);
+      printf("%d/%d: Accuracy %.2f%%, Total Time %.5f s\n", i, epoch_count, (float)correct/train_count*100, endTime-startTime);
     }
 
     free(train_data);
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
-      printf("Coventional:        Accuracy %.2f%%, Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
+      printf("Coventional:        Accuracy %.2f%%, Total Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
       printf("L1 Time %.5f s, L2 Time %.5f s, L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1Time, l2Time, l3Time, l4Time, l5Time, resultTime);
     }
     { // 2 Layers Fused
@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
-      printf("2 Layers Fused:     Accuracy %.2f%%, Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
+      printf("2 Layers Fused:     Accuracy %.2f%%, Total Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
       printf("L1+L2 Time %.5f s, L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2Time, l3Time, l4Time, l5Time, resultTime);
     }
     { // 3 Layers Fused
@@ -259,7 +259,7 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
-      printf("3 Layers Fused:     Accuracy %.2f%%, Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
+      printf("3 Layers Fused:     Accuracy %.2f%%, Total Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
       printf("L1+L2+L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2l3Time, l4Time, l5Time, resultTime);
     }
     { // 4 Layers Fused
@@ -288,7 +288,7 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
-      printf("4 Layers Fused:     Accuracy %.2f%%, Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
+      printf("4 Layers Fused:     Accuracy %.2f%%, Total Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
       printf("L1+L2+L3+L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2l3l4Time, l5Time, resultTime);
     }
     { // 2x2 Layers Fused
@@ -322,7 +322,7 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       cudaMemcpy(&correct, device_correct, sizeof(int), cudaMemcpyDeviceToHost);
-      printf("2x2 Layers Fused:   Accuracy %.2f%%, Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
+      printf("2x2 Layers Fused:   Accuracy %.2f%%, Total Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
       printf("L1+L2 Time %.5f s, L3+L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1l2Time, l3l4Time, l5Time, resultTime);
     }
 

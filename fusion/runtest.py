@@ -4,7 +4,6 @@ import sys, subprocess, os, argparse
 
 EXE_PATH = "mnistFuse"
 OUT_DIR = "result"
-OUT_FILE = "result"
 
 def parseResult(txt, res_dict):
   txt = txt.split("\n")
@@ -24,11 +23,11 @@ def parseResult(txt, res_dict):
         res_dict[name][title] = []
       res_dict[name][title].append(value)
 
-def outputResult(outfile, test, res_dict, iterations):
+def outputResult(test, res_dict, iterations):
   if not os.path.exists(OUT_DIR):
     os.mkdir(OUT_DIR)
   keys = res_dict.keys()
-  with open(OUT_DIR+"/"+outfile+"_"+test.replace(" ","_")+".csv", "w") as f:
+  with open(OUT_DIR+"/"+test.replace(" ","_")+".csv", "w") as f:
     f.write(", ".join(keys)+"\n")
     for i in range(iterations):
       line = []
@@ -40,7 +39,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--iter', type=int, default=100, help="Number of Iterations")
 parser.add_argument('--train', type=str, default="60000", help="Number of Train Samples")
 parser.add_argument('--test', type=str, default="10000", help="Number of Test Samples")
-parser.add_argument('outfile', nargs="?", type=str, default=OUT_FILE, help="Output File for Result")
 args = parser.parse_args()
 
 if not os.path.isfile(EXE_PATH):
@@ -57,6 +55,6 @@ for i in range(args.iter):
   print(f"{i+1}/{args.iter}")
 
 for key, val in res_dict.items():
-  outputResult(args.outfile, key, val, args.iter)
+  outputResult(key, val, args.iter)
 
 print("Done")

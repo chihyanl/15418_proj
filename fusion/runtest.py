@@ -3,7 +3,7 @@
 import sys, subprocess, os, argparse
 
 EXE_PATH = "mnistFuse"
-OUT_DIR = "result"
+OUT_DIR = "raw_data"
 
 def parseResult(txt, res_dict):
   txt = txt.split("\n")

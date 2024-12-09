@@ -296,6 +296,7 @@ Conv::Conv(int in_channels, int out_channels, int height, int width, int kernel_
   float k = sqrt(1.0f / (in_channels * kernel_h * kernel_w));
   randomFloat<<<gridDim, blockDim>>>(weight, -k, k, out_channels * in_channels * kernel_h * kernel_w);
   randomFloat<<<gridDim, blockDim>>>(bias, -k, k, out_channels);
+  cudaDeviceSynchronize();
 }
 
 Conv::~Conv() {
@@ -312,6 +313,7 @@ void Conv::forward(float* input) {
   dim3 gridDim((out_channels * height_out * width_out + blockDim.x - 1) / blockDim.x);
 
   cudaConvForward<<<gridDim, blockDim>>>(height, width, in_channels, out_channels, kernel_h, kernel_w, stride, pad, height_out, width_out, input, output, weight, bias);
+  cudaDeviceSynchronize();
 }
 
 void Conv::backward(float* input, float* src_error) {
@@ -323,6 +325,7 @@ void Conv::backward(float* input, float* src_error) {
   dim3 gridDim((out_channels * height_out * width_out + blockDim.x - 1) / blockDim.x);
 
   cudaConvBackward<<<gridDim, blockDim>>>(height, width, in_channels, out_channels, kernel_h, kernel_w, stride, pad, height_out, width_out, input, output, weight, u_weight, u_bias, error, src_error);
+  cudaDeviceSynchronize();
 }
 
 void Conv::update(float rate) {
@@ -330,6 +333,7 @@ void Conv::update(float rate) {
   dim3 gridDim((out_channels * in_channels * kernel_h * kernel_w + blockDim.x - 1) / blockDim.x);
 
   cudaConvUpdate<<<gridDim, blockDim>>>(in_channels, out_channels, kernel_h, kernel_w, weight, u_weight, bias, u_bias, rate);
+  cudaDeviceSynchronize();
 }
 
 
@@ -361,6 +365,7 @@ Linear::Linear(int in_channels, int out_channels)
   float k = 1.0f / in_channels;
   randomFloat<<<gridDim, blockDim>>>(weight, -k, k, out_channels * in_channels);
   randomFloat<<<gridDim, blockDim>>>(bias, -k, k, out_channels);
+  cudaDeviceSynchronize();
 }
 
 Linear::~Linear() {
@@ -383,6 +388,7 @@ void Linear::forward(float* input) {
   dim3 blockDim(N, 1);
   dim3 gridDim(1);
   cudaLinearForward<<<gridDim, blockDim, sizeof(float) * N>>>(in_channels, out_channels, input, weight, bias, output, N);
+  cudaDeviceSynchronize();
 }
 
 void Linear::backward(float* input, float* src_error) {
@@ -391,10 +397,12 @@ void Linear::backward(float* input, float* src_error) {
   dim3 blockDim(out_channels, 1);
   dim3 gridDim(1);
   cudaLinearBackward<<<gridDim, blockDim>>>(in_channels, out_channels, input, weight, u_weight, u_bias, output, error, src_error);
+  cudaDeviceSynchronize();
 }
 
 void Linear::update(float rate) {
   dim3 blockDim(BLOCK_SIZE, 1);
   dim3 gridDim((in_channels * out_channels + BLOCK_SIZE - 1) / BLOCK_SIZE);
   cudaLinearUpdate<<<gridDim, blockDim>>>(in_channels, out_channels, weight, u_weight, bias, u_bias, error, rate);
+  cudaDeviceSynchronize();
 }

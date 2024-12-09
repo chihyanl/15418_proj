@@ -203,6 +203,7 @@ void convFuseForward2(float* input, Conv* l1, Conv* l2, int tile_h, int tile_w) 
                                           l2->height_out, l2->width_out, l2->out_channels,
                                           tile_h1, tile_w1, tile_h2, tile_w2, tile_h3, tile_w3,
                                           input, l2->output, l1->weight, l1->bias, l2->weight, l2->bias);
+  cudaDeviceSynchronize();
 }
 
 void convFuseForward3(float* input, Conv* l1, Conv* l2, Conv* l3, int tile_h, int tile_w) {
@@ -241,6 +242,7 @@ void convFuseForward3(float* input, Conv* l1, Conv* l2, Conv* l3, int tile_h, in
                                           l3->height_out, l3->width_out, l3->out_channels,
                                           tile_h1, tile_w1, tile_h2, tile_w2, tile_h3, tile_w3, tile_h4, tile_w4,
                                           input, l3->output, l1->weight, l1->bias, l2->weight, l2->bias, l3->weight, l3->bias);
+  cudaDeviceSynchronize();
 }
 
 void convFuseForward4(float* input, Conv* l1, Conv* l2, Conv* l3, Conv* l4, int tile_h, int tile_w) {
@@ -283,4 +285,5 @@ void convFuseForward4(float* input, Conv* l1, Conv* l2, Conv* l3, Conv* l4, int 
                                           l4->height_out, l4->width_out, l4->out_channels,
                                           tile_h1, tile_w1, tile_h2, tile_w2, tile_h3, tile_w3, tile_h4, tile_w4, tile_h5, tile_w5,
                                           input, l4->output, l1->weight, l1->bias, l2->weight, l2->bias, l3->weight, l3->bias, l4->weight, l4->bias);
+  cudaDeviceSynchronize();
 }

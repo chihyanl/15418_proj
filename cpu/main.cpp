@@ -59,16 +59,12 @@ int main(int argc, char** argv) {
     }
 
     for (int i = 1; i <= epoch_count; i++) {
-      double startTime = CycleTimer::currentSeconds();
-      double convAccTime = 0;
       int correct = 0;
+      double startTime = CycleTimer::currentSeconds();
       for (int j = 0; j < train_count; j++) {
         // forward
-        double convStartTime = CycleTimer::currentSeconds();
         l1->forward(&train_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
         l2->forward(l1->output);
-        double convEndTime = CycleTimer::currentSeconds();
-        convAccTime += convEndTime - convStartTime;
         l3->forward(l2->output);
         l4->forward(l3->output);
         l5->forward(l4->output);
@@ -105,7 +101,6 @@ int main(int argc, char** argv) {
       }
       double endTime = CycleTimer::currentSeconds();
       printf("%d/%d: Accuracy %.2f%%, Time %.5f s\n", i, epoch_count, (float)correct/train_count*100, endTime-startTime);
-      printf("L1 & L2 Acc Forward time: %.5f s\n", convAccTime);
     }
 
     free(train_data);
@@ -127,20 +122,33 @@ int main(int argc, char** argv) {
       return 1;
     }
 
-    double startTime = CycleTimer::currentSeconds();
-    double convAccTime = 0;
+    double l1Time = 0;
+    double l2Time = 0;
+    double l3Time = 0;
+    double l4Time = 0;
+    double l5Time = 0;
+    double resultTime = 0;
     int correct = 0;
+    double startTime = CycleTimer::currentSeconds();
     for (int j = 0; j < test_count; j++) {
       // forward
-      double convStartTime = CycleTimer::currentSeconds();
+      double l1StartTime = CycleTimer::currentSeconds();
       l1->forward(&test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH]);
+      double l1EndTime = CycleTimer::currentSeconds();
+      double l2StartTime = CycleTimer::currentSeconds();
       l2->forward(l1->output);
-      double convEndTime = CycleTimer::currentSeconds();
-      convAccTime += convEndTime - convStartTime;
+      double l2EndTime = CycleTimer::currentSeconds();
+      double l3StartTime = CycleTimer::currentSeconds();
       l3->forward(l2->output);
+      double l3EndTime = CycleTimer::currentSeconds();
+      double l4StartTime = CycleTimer::currentSeconds();
       l4->forward(l3->output);
+      double l4EndTime = CycleTimer::currentSeconds();
+      double l5StartTime = CycleTimer::currentSeconds();
       l5->forward(l4->output);
+      double l5EndTime = CycleTimer::currentSeconds();
 
+      double resultStartTime = CycleTimer::currentSeconds();
       int y = test_label[j];
       int pred = 0;
       float local_max = l5->output[0];
@@ -154,10 +162,18 @@ int main(int argc, char** argv) {
       if (pred == y) {
         correct++;
       }
+      double resultEndTime = CycleTimer::currentSeconds();
+
+      l1Time += l1EndTime - l1StartTime;
+      l2Time += l2EndTime - l2StartTime;
+      l3Time += l3EndTime - l3StartTime;
+      l4Time += l4EndTime - l4StartTime;
+      l5Time += l5EndTime - l5StartTime;
+      resultTime += resultEndTime - resultStartTime;
     }
     double endTime = CycleTimer::currentSeconds();
-    printf("Accuracy %.2f%%, Time %.5f s\n", (float)correct/test_count*100, endTime-startTime);
-    printf("L1 & L2 Acc Forward time: %.5f s\n", convAccTime);
+    printf("Accuracy %.2f%%, Total Time %.5f s, ", (float)correct/test_count*100, endTime-startTime);
+    printf("L1 Time %.5f s, L2 Time %.5f s, L3 Time %.5f s, L4 Time %.5f s, L5 Time %.5f s, Result Time %.5f s\n", l1Time, l2Time, l3Time, l4Time, l5Time, resultTime);
 
     free(test_data);
     free(test_label);

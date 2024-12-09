@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
       for (int j = 0; j < test_count; j++) {
         // forward
         double l1l2StartTime = CycleTimer::currentSeconds();
-        convFuseForward2(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH], l1, l2, 5, 5);
+        convFuseForward2(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH], l1, l2, 3, 3);
         double l1l2EndTime = CycleTimer::currentSeconds();
         double l3StartTime = CycleTimer::currentSeconds();
         l3->forward(l2->output);
@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
       for (int j = 0; j < test_count; j++) {
         // forward
         double l1l2l3StartTime = CycleTimer::currentSeconds();
-        convFuseForward3(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH], l1, l2, l3, 3, 3);
+        convFuseForward3(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH], l1, l2, l3, 2, 2);
         double l1l2l3EndTime = CycleTimer::currentSeconds();
         double l4StartTime = CycleTimer::currentSeconds();
         l4->forward(l3->output);
@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
         convFuseForward2(&device_test_data[j*IMAGE_HEIGHT*IMAGE_WIDTH], l1, l2, 5, 5);
         double l1l2EndTime = CycleTimer::currentSeconds();
         double l3l4StartTime = CycleTimer::currentSeconds();
-        convFuseForward2(l2->output, l3, l4, 5, 5);
+        convFuseForward2(l2->output, l3, l4, 3, 3);
         double l3l4EndTime = CycleTimer::currentSeconds();
         double l5StartTime = CycleTimer::currentSeconds();
         l5->forward(l4->output);

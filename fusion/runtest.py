@@ -3,7 +3,8 @@
 import sys, subprocess, os, argparse
 
 EXE_PATH = "mnistFuse"
-OUT_FILE = "result/result"
+OUT_DIR = "result"
+OUT_FILE = "result"
 
 def parseResult(txt, res_dict):
   txt = txt.split("\n")
@@ -24,8 +25,10 @@ def parseResult(txt, res_dict):
       res_dict[name][title].append(value)
 
 def outputResult(outfile, test, res_dict, iterations):
+  if not os.path.exists(OUT_DIR):
+    os.mkdir(OUT_DIR)
   keys = res_dict.keys()
-  with open(outfile+"_"+test.replace(" ","_")+".csv", "w") as f:
+  with open(OUT_DIR+"/"+outfile+"_"+test.replace(" ","_")+".csv", "w") as f:
     f.write(", ".join(keys)+"\n")
     for i in range(iterations):
       line = []

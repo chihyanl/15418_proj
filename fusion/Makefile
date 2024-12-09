@@ -9,6 +9,7 @@ all: $(EXECUTABLE)
 ###########################################################
 
 OBJDIR=objs
+RESULT_DIR=result
 CXX=g++ -m64
 CXXFLAGS=-O3 -Wall
 LDFLAGS=-L/usr/local/cuda-11.7/lib64/ -lcudart
@@ -28,7 +29,7 @@ dirs:
 		mkdir -p $(OBJDIR)/
 
 clean:
-		rm -rf $(OBJDIR) *.ppm *~ $(EXECUTABLE)
+		rm -rf $(OBJDIR) *.ppm *~ $(EXECUTABLE) $(RESULT_DIR)
 
 $(EXECUTABLE): dirs $(OBJS)
 		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)

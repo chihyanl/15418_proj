@@ -5,7 +5,6 @@
 #include "layer.h"
 #include "fusion.h"
 #include "CycleTimer.h"
-#include <unistd.h>
 
 #define EPOCH 2
 #define LR 0.005

@@ -56,7 +56,7 @@ copy nth layer output from shared memory buffer to global memory
 ##### Thread Mapping
 The number of threads per block is determined by the maximum of each layer's product of output channel size and the tile size: $\max\limits_{i}(out\\_channel_i \times tile\\_width_i \times tile\\_height_i\)$. Additionally, we attempted using 256 threads per block, where each thread is statically assigned with a set of channel and tile coordinate combinations, but it turns out to perform worse potentially due to the limited parallelization and worse load balance. In the final implementation, we implemented the former approach, which also limits the maximum output channel and tile size product to 1024 as the maximum of threads per shared memory is 1024.
 ##### Block Mapping
-The number of thread blocks is determined by the last layer's output dimension and the tile size: $\frac{width\\_out+tile\\_width-1}{tile\\_width}\frac{height\\_out+tile\\_height-1}{tile\\_height}$. This ensures coverage for the entire output while each thread block performs the computation for each tile on the shared memory.
+The number of thread blocks is determined by the $n^{th}$ layer's output dimension and the tile size: $\frac{width\\_out+tile\\_width-1}{tile\\_width}\frac{height\\_out+tile\\_height-1}{tile\\_height}$. This ensures coverage for the entire output while each thread block performs the computation for each tile on the shared memory.
 
 ### Results
 We are successful in reaching our goals:
@@ -79,6 +79,7 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 <p align="center">
   Fig 2. Total Runtime vs Implementation
 </p>
+Figure 2 shows the best timing of each implmentation. 'Result Time' denotes the time taken to generate the prediction, while 'L1 Time', 'L2 Time', 'L3 Time', 'L4 Time', and 'L5 Time' represent the time taken for their respective layer, as indicated in Table 1. In general, the performance imporves as the number of fused layers increases, with the exception of when 4 layers are fused. The improvements result from reduced communication with global memory. Specifically, fusing 2 layers eliminates 1 set of input/output communications, fusing 3 layers eliminates 2 sets of input/output communications, and fusing 2x2 layers eliminates 2 sets of input/output communications. While fusing 3 layers and fusing 2x2 layers both eliminates 2 sets of input/output communications, fusing 3 layers requires 151 recomputations whereas 2x2 layers only requires 64 recomputations per thread block. The increasing recomputation requires more threads per block to be allocated, using up resources that could otherwise be used for 'useful' work. Addtionally, fusing 3 layers utilizes 864 threads, which is a high thread count that leads to lower utilization of the streaming multiprocessors. In contrast, fusing 2x2 layers utilizes significantly fewer threads (216 and 128 threads respectively), achieving a better utilization and performance.
 
 ### Resources
 > [1] M. Alwani, H. Chen, M. Ferdman and P. Milder, "Fused-layer CNN accelerators," 2016 49th Annual IEEE/ACM International Symposium on Microarchitecture (MICRO), Taipei, Taiwan, 2016, pp. 1-12, doi: [10.1109/MICRO.2016.7783725.](https://doi.org/10.1109/MICRO.2016.7783725)

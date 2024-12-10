@@ -7,6 +7,18 @@ permalink: /final_report/
 CNN with Layer Fusion on NVIDIA GPU
 ### Table of Content
 1. [Summary](#Summary)
+2. [Background](#Background)
+3. [Approach](#Approach)
+  1. [CPU+CUDA CNN Implementation](#CPU+CUDA%20CNN%20Implementation)
+  2. [Layer Fusion Implementation](#Layer%20Fusion%20Implementation)
+     1. [Thread Mapping](#Thread%20Mapping)
+     2. [Block Mapping](#Block%20Mapping)
+4. [Results](#Results)
+  1. [Optimization](#Optimization)
+  2. [Experiment Setup](#Experiment%20Setup)
+  3. [Overall Performance](#Overall%20Performance)
+5. [Resources](#Resources)
+6. [Contribution](#Contribution)
 
 ### Summary
 We are going to implement CNN with layer fusion on NVIDIA GPU. The project's goal is to port the original FPGA implementation to an NVIDIA GPU implementation.

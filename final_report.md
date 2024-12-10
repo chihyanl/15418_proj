@@ -5,6 +5,8 @@ permalink: /final_report/
 ---
 ### Title
 CNN with Layer Fusion on NVIDIA GPU
+### Table of Content
+1. [Summary](#Summary)
 
 ### Summary
 We are going to implement CNN with layer fusion on NVIDIA GPU. The project's goal is to port the original FPGA implementation to an NVIDIA GPU implementation.

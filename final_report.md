@@ -77,7 +77,7 @@ Additionally, we attempted using 256 threads per block, where each thread is sta
 #### Block Mapping <a name="block_mapping"></a>
 The number of thread blocks is determined by the *n<sup>th</sup>* layer's output dimension and the tile size:
 
-<div align="center"><img src="../figure/blockmap_equation.png" width=500></div>
+<div align="center"><img src="../figure/blockmap_equation.png" width=400></div>
 
 This ensures coverage for the entire output while each thread block performs the computation for each tile on the shared memory.
 

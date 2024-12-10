@@ -70,11 +70,15 @@ copy nth layer output from shared memory buffer to global memory
 ```
 #### Thread Mapping <a name="thread_mapping"></a>
 The number of threads per block is determined by the maximum of each layer's product of output channel size and the tile size:
-<div align="center"><img src="../figure/threadmap_equation.png" width=300></div>
+
+<div align="center"><img src="../figure/threadmap_equation.png" width=400></div>
+
 Additionally, we attempted using 256 threads per block, where each thread is statically assigned with a set of channel and tile coordinate combinations, but it turns out to perform worse potentially due to the limited parallelization and worse load balance. In the final implementation, we implemented the former approach, which also limits the maximum output channel and tile size product to 1024 as the maximum of threads per shared memory is 1024.
 #### Block Mapping <a name="block_mapping"></a>
 The number of thread blocks is determined by the *n<sup>th</sup>* layer's output dimension and the tile size:
-<div align="center"><img src="../figure/blockmap_equation.png" width=300></div>
+
+<div align="center"><img src="../figure/blockmap_equation.png" width=500></div>
+
 This ensures coverage for the entire output while each thread block performs the computation for each tile on the shared memory.
 
 ## Results <a name="results"></a>

@@ -14,9 +14,9 @@ CNN with Layer Fusion on NVIDIA GPU
        1. [Thread Mapping](#thread_mapping)
        2. [Block Mapping](#block_mapping)
 4. [Results](#results)
-  1. [Optimization](#optimization)
-  2. [Experiment Setup](#experiment_setup)
-  3. [Overall Performance](#overall_performance)
+   1. [Optimization](#optimization)
+   2. [Experiment Setup](#experiment_setup)
+   3. [Overall Performance](#overall_performance)
 5. [Resources](#resources)
 6. [Contribution](#contribution)
 

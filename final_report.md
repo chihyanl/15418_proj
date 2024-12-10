@@ -70,11 +70,11 @@ We are successful in reaching our goals:
 While we attempted to optimize both the original CUDA implmentation and the layer fusion implementation, the primary goal is to study the effect of layer fusion on GPUs. In order to ensure that we have the same basis for comparison, the approaches are developed from the same base code.
 
 #### Experiment Setup
-Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 60000 training samples, and 10000 testing samples. The training is done with 2 epochs, then the trained weights/biases are tested with the different implementations: the conventional layer-by-layer on the CPU, the conventional layer-by-layer on the GPU, first 2 layers fused on the GPU, first 3 layers fused on the GPU, first 4 layers fused, and 2x2 layers fused (where the first 2 layers are fused and the 3rd/4th layers are fused). The primary interest is the performance measured with the wall-clock time of each implementation. The secondary interest is the shared memory and threads per block utilization and their correlation with performance.
+Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 60000 training samples, and 10000 testing samples. The training is done with 2 epochs, then the trained weights/biases are tested with the different implementations: the conventional layer-by-layer on the CPU, the conventional layer-by-layer on the GPU, first 2 layers fused on the GPU, first 3 layers fused on the GPU, first 4 layers fused, and 2x2 layers fused (where the first 2 layers are fused and the 3rd/4th layers are fused). The primary interest is the performance measured with the wall-clock time of the testing phase of each implementation. The secondary interest is the shared memory and threads per block utilization and their correlation with performance.
 
 #### Overall Performance
 <p align="center">
-  <img src="../figure/total_runtime_vs_implementation.png" width=400>
+  <img src="../figure/total_runtime_vs_implementation.png" width=600>
 </p>
 <p align="center">
   Fig 2. Total Runtime vs Implementation [1]

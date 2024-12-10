@@ -68,9 +68,9 @@ compute nth layer forward pass
 copy nth layer output from shared memory buffer to global memory
 ```
 #### Thread Mapping <a name="thread_mapping"></a>
-The number of threads per block is determined by the maximum of each layer's product of output channel size and the tile size: $\max\limits_{i}(out\\_channel_i \times tile\\_width_i \times tile\\_height_i\)$. Additionally, we attempted using 256 threads per block, where each thread is statically assigned with a set of channel and tile coordinate combinations, but it turns out to perform worse potentially due to the limited parallelization and worse load balance. In the final implementation, we implemented the former approach, which also limits the maximum output channel and tile size product to 1024 as the maximum of threads per shared memory is 1024.
+The number of threads per block is determined by the maximum of each layer's product of output channel size and the tile size: $`\max\limits_{i}(out\_channel_i \times tile\_width_i \times tile\_height_i)`$. Additionally, we attempted using 256 threads per block, where each thread is statically assigned with a set of channel and tile coordinate combinations, but it turns out to perform worse potentially due to the limited parallelization and worse load balance. In the final implementation, we implemented the former approach, which also limits the maximum output channel and tile size product to 1024 as the maximum of threads per shared memory is 1024.
 #### Block Mapping <a name="block_mapping"></a>
-The number of thread blocks is determined by the $n^{th}$ layer's output dimension and the tile size: $\frac{width\\_out+tile\\_width-1}{tile\\_width}\frac{height\\_out+tile\\_height-1}{tile\\_height}$. This ensures coverage for the entire output while each thread block performs the computation for each tile on the shared memory.
+The number of thread blocks is determined by the $`n^{th}`$ layer's output dimension and the tile size: $`\frac{width\_out+tile\_width-1}{tile\_width}\frac{height\_out+tile\_height-1}{tile\_height}`$. This ensures coverage for the entire output while each thread block performs the computation for each tile on the shared memory.
 
 ## Results <a name="results"></a>
 We are successful in reaching our goals:

@@ -38,7 +38,21 @@ In order to parallelize and analyze the effectiveness of layer fusion on GPUs, w
 | L5 | Fully Connected | 10 | - | - | - | 4840 | 10 |
 </div>
 
-To ease the development process, we started from a CPU implementation and targeted for a higher than 97% correctness on the MNIST. Our final CNN implmentation is structured as shown in Table 1, achieving near 98% correctness with 2 epochs.
+To ease the development process, we started from a CPU implementation and targeted for a higher than 97% correctness on the MNIST. Our final CNN implmentation is structured as shown in Table 1, achieving near 98% correctness with 2 epochs. Porting the CPU implementation to GPU, we unrolled the outer 3 loops in the forward/backward passes of the convolutional layers and flattened the fully connected layer. With the CUDA implementation, we were able to shorten the training time from 207.13 seconds to 49.57 seconds and the testing time from 8.804 seconds to 0.703 seconds. The CUDA implementation has each thread compute one output for each of the layers, allowing a highly parallelized approach without dependencies.
+
+With the conventional CNN implementation in CUDA, we implemented layer fusion in a tiles, where each thread block would compute the fused layer's output in the tile. By tiling, we are able to localize the computation, allowing the intermediate data to be stored locally in the shared memory. Due to the shared memory not being retained between kernels, our implementation uses the recomputation approach, where the overlapping regions are recomputed instead of reused. In contrast to the FPGA implmentation in [1], the reuse approach would require the overlapped region's data to be stored in the global memory, defeating the goal of layer fusion.
+
+The fused layer forward passes are structured as shown below:
+```
+copy input data from global memory to shared memory buffer
+compute 1st layer forward pass
+compute 2nd layer forward pass
+...
+compute nth layer forward pass
+copy nth layer output from shared memory buffer to global memory
+```
+
+The number of threads per block is determined by the maximum of each layer's product of output channel size and the tile size: $\max\limits_{i}(out\\_channel_i \times tile\\_width_i \times tile\\_height_i\)$. Additionally, we attempted using 256 threads per block, where each thread is statically assigned with a set of channel and tile coordinate combinations, but it turns out to perform worse potentially due to the limited parallelization and worse load balance. In the final implementation, we implemented the former approach, which also limits the maximum output channel and tile size product to 1024 as the maximum of threads per shared memory is 1024.
 
 ### Results
 

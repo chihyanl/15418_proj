@@ -74,7 +74,8 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 
 ### Resources
 > [1] M. Alwani, H. Chen, M. Ferdman and P. Milder, "Fused-layer CNN accelerators," 2016 49th Annual IEEE/ACM International Symposium on Microarchitecture (MICRO), Taipei, Taiwan, 2016, pp. 1-12, doi: [10.1109/MICRO.2016.7783725.](https://doi.org/10.1109/MICRO.2016.7783725)
-> [2] Euske, “Convolutional Neural Network in C (for educational purposes),” GitHub, https://github.com/euske/nn1/tree/master (accessed Dec. 9, 2024). 
+>
+>  [2] Euske, “Convolutional Neural Network in C (for educational purposes),” GitHub, https://github.com/euske/nn1/tree/master (accessed Dec. 9, 2024). 
 
 ### Contribution
 | Member | Work | Distribution |

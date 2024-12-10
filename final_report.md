@@ -2,6 +2,7 @@
 layout: page
 title: Final Report
 permalink: /final_report/
+usemathjax: true
 ---
 ## Title
 CNN with Layer Fusion on NVIDIA GPU

@@ -74,10 +74,10 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 
 #### Overall Performance
 <p align="center">
-  <img src="../figure/total_runtime_vs_implementation.png" width=600>
+  <img src="../figure/total_runtime_vs_implementation.png">
 </p>
 <p align="center">
-  Fig 2. Total Runtime vs Implementation [1]
+  Fig 2. Total Runtime vs Implementation
 </p>
 
 ### Resources

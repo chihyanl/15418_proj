@@ -21,6 +21,22 @@ Layer fusion uses tiles of blocked kernels to form a pyramid. By using the outpu
 </p>
 
 ### Approach
+In order to parallelize and analyze the effectiveness of layer fusion on GPUs, we implemented a simple CNN targeted for MNIST. To have the best control over the details and ensure that our comparisons are on the same basis, we implemented our designs from scratch with C++ and CUDA.
+
+<p align="center">
+  Table 1
+  CNN Configuration
+</p>
+| Layer | Type | Output Size | Kernel Size | Stride | Pad | Number of Weights | Number of Biases |
+|-|-|-|-|-|-|-|-|
+| L0 | Input | 28x28x1 | - | - | - | - | - |
+| L1 | Convolution | 28x28x6 | 5x5 | 1 | 2 | 150 | 6 |
+| L2 | Convolution | 13x13x16 | 4x4 | 2 | 0 | 1536 | 16 |
+| L3 | Convolution | 13x13x8 | 3x3 | 1 | 1 | 1152 | 8 |
+| L4 | Convolution | 11x11x4 | 3x3 | 1 | 0 | 288 | 4 |
+| L5 | Fully Connected | 10 | - | - | - | 4840 | 10 |
+
+To ease the development process, we started from a CPU implementation and targeted for a higher than 97% correctness on the MNIST. Our final CNN implmentation is structured as shown in Table 1, achieving near 98% correctness with 2 epochs.
 
 ### Results
 

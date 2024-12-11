@@ -18,6 +18,11 @@ CNN with Layer Fusion on NVIDIA GPU
    1. [Optimization](#optimization)
    2. [Experiment Setup](#experiment_setup)
    3. [Overall Performance](#overall_performance)
+   4. [Impact of Tile Size on Performance](#tile_size_performance)
+   5. [Impact of Network Size on Speedup](#network_size_speedup)
+      1. [Altering L1's Output Dimension](#l1_output_dimension)
+      2. [Altering L1's Output Channel Size](#l1_output_channel)
+   6. [Conclusion](#conclusion)
 5. [Resources](#resources)
 6. [Contribution](#contribution)
 
@@ -29,9 +34,7 @@ Conventional convolution layer has results stored locally and written to the mem
 Layer fusion uses tiles of blocked kernels to form a pyramid. By using the outputs of the first few layers immediately reduces the need to store/read them from the memory. However, with the pyramid structure, there are overlapping intermediate data used by different tiles. These intermediate data can either be recomputed or reused, each having their own trade-off. Recomputing is a simple approach but requires more operations, whereas reusing avoids the extra computation but requires more local storage.
 
 <p align="center">
-  <img src="../fusion_pyramid.png" width=400>
-</p>
-<p align="center">
+  <img src="../fusion_pyramid.png" width=400> <br>
   Fig 1. Example of a single pyramid and a multi-pyramid applied over four layers [1]
 </p>
 
@@ -97,9 +100,7 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 
 ### Overall Performance <a name="overall_performance"></a>
 <p align="center">
-  <img src="../figure/total_runtime_vs_implementation.png">
-</p>
-<p align="center">
+  <img src="../figure/total_runtime_vs_implementation.png" width=500> <br>
   Fig 2. Total Runtime vs Implementation
 </p>
 Figure 2 shows the best timing of each implementation. 'Result Time' denotes the time taken to generate the prediction, while 'L1 Time', 'L2 Time', 'L3 Time', 'L4 Time', and 'L5 Time' represent the time taken for their respective layer, as indicated in Table 1.
@@ -112,8 +113,10 @@ Fusing 4 layers has the similar issues stated with fusing 3 layers but more seve
 
 ### Impact of Tile Size on Performance <a name="tile_size_performance"></a>
 <p align="center">
-   <img src="../figure/2_layer_fused_tile_size.png"> <br><br>
+   <img src="../figure/2_layer_fused_tile_size.png"> <br>
    Fig 3. 2 Layer Fused Tile Size Results <br>
+</p>
+<p align="center">
    <img src="../figure/3_layer_fused_tile_size.png"> <br>
    Fig 4. 3 Layer Fused Tile Size Results
 </p>

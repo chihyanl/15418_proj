@@ -104,9 +104,58 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 </p>
 Figure 2 shows the best timing of each implementation. 'Result Time' denotes the time taken to generate the prediction, while 'L1 Time', 'L2 Time', 'L3 Time', 'L4 Time', and 'L5 Time' represent the time taken for their respective layer, as indicated in Table 1.
 
-In general, the performance improves as the number of fused layers increases, except for when 4 layers are fused. The improvements result from reduced communication with global memory. Specifically, fusing 2 layers eliminates 1 set of input/output communications, fusing 3 layers eliminates 2 sets of input/output communications, and fusing 2x2 layers eliminates 2 sets of input/output communications.
+In general, the performance improves as the number of fused layers increases, with the exception of when 4 layers are fused. The improvements result from reduced communication with global memory. Specifically, fusing 2 layers eliminates 1 set of input/output communications, fusing 3 layers eliminates 2 sets of input/output communications, and fusing 2x2 layers eliminates 2 sets of input/output communications.
 
-While fusing 3 layers and fusing 2x2 layers both eliminates 2 sets of input/output communications, fusing 3 layers requires 151 recomputations per thread block whereas 2x2 layers only requires 64 recomputations per thread block. The increasing recomputation requires more threads per block to be allocated, using up resources that could otherwise be used for 'useful' work. Additionally, fusing 3 layers utilizes 864 threads, which is a high thread count that leads to lower utilization of the streaming multiprocessors. In contrast, fusing 2x2 layers utilizes significantly fewer threads (216 and 128 threads respectively), achieving better utilization and performance.
+While fusing 3 layers and fusing 2x2 layers both eliminate 2 sets of input/output communications, fusing 3 layers requires 151 recomputations per thread block whereas 2x2 layers only requires 64 recomputations per thread block. The increasing recomputation requires more threads per block to be allocated, using up resources that could otherwise be used for 'useful' work. Additionally, fusing 3 layers utilizes 864 threads, which is a high thread count that leads to lower utilization of the streaming multiprocessors. In contrast, fusing 2x2 layers utilizes significantly fewer threads (216 and 128 threads respectively), achieving a better utilization and performance.
+
+Fusing 4 layers has the similar issues stated with fusing 3 layers but more severe. The increased number of fused layers requires 175 recomputations per thread block, limiting the tile size to 1x1 to stay within the 1024 threads per block limit. This results in 121 thread blocks (approximately 4.8 times more thread blocks), which degrades performance. Additionally, fusing four layers utilizes 864 threads, which leads to reduced utilization and subsequently lower performance.
+
+### Impact of Tile Size on Performance <a name="tile_size_performance"></a>
+<p align="center">
+   <img src="../figure/2_layer_fused_tile_size.png"> <br>
+   Fig 3. 2 Layer Fused Tile Size Results <br>
+   <img src="../figure/3_layer_fused_tile_size.png"> <br>
+   Fig 4. 3 Layer Fused Tile Size Results
+</p>
+
+As shown in Figure 3 and Figure 4, a smaller tile size results in less threads per block and shared memory utilization, since the maximum tile size of the layers is smaller and less intermediate data is produced. However, the best performing tile size is determined by the threads per block, number of blocks, and recomputations per thread block combination.
+
+For example, when fusing 2 layers, a 5x5 tile size requires 864 threads per block, 9 thread blocks, and 119 recomputations per thread per output channel, whereas a 2x2 tile size requires 216 threads per block, 49 thread blocks, and 32 recomputations per thread per output channel. The 2x2 tile excels in performance with all 3 factors, resulting in an improved performance.
+
+Additionally, when fusing 3 layers, a 3x3 tile size requires 864 threads per block, 25 thread blocks, and 151 recomputations per thread per output channel, whereas a 1x1 tile size requires 384 threads per block, 169 thread blocks, and 71 recomputations per thread per output channel. The 1x1 tile size has lower recomputations per thread, which improves performance, but the number of threads per block and thread blocks combination results in significantly worse utilization, hindering the performance.
+
+All three factors—the number of threads per block, the number of thread blocks, and the number of recomputations per thread—are affected by the tile size. Finding the optimal tile size to balance these factors is challenging, especially as the number of fused layers increases. Generally, fusing only two layers at a time is ideal for achieving this balance, as it requires fewer threads per block, increases the number of thread blocks for better load balancing (given an ideal number of threads per block), and reduces recomputations per thread. This results in better performance and utilization for 'useful' work as shown with the 2x2 fused layers.
+
+### Impact of Network Size on Speedup <a name="network_size_speedup"></a>
+To examine how network size influences speedup, we designed two experiments. In the first experiment, we modified the output dimension of L1, excluding the output channel, and adjusted the corresponding values of the remaining layers. In the second experiment, we altered L1's output channel size and matched L2's input channel accordingly. In our experiment, we compare the speedup of the conventional CUDA CNN with the 2x2 layer fusion implementation, using a tile size of 2x2 for both fused stacks. This specific structure was chosen because it demonstrated the best performance in our prior tests.
+
+#### Altering L1’s Output Dimension <a name="l1_output_dimension"></a>
+<p align="center">
+   <img src="../figure/l1_dim_speedup.png"> <br>
+   Fig 5. Speedup by Altering L1 Output Dimension
+</p>
+
+Figure 5 illustrates the overall speedup and the speedup of the fused convolutional layers (L1 to L4) for various network sizes, achieved by modifying L1's output dimension. The network size is represented as the total of the input and output sizes of the convolutional layers.
+As shown in Figure 5, when the network size increases, there is a decrease in speedup. The reduction in speedup can be attributed to the constant number of threads per thread block and recomputations per thread block, combined with an increase in the number of thread blocks. This results in lower utilization and more recomputation. In the case of fusing 2x2 layers (with 2x2 and 2x2 tile sizes), load balancing is not a primary concern since the setup already has a sufficient number of thread blocks. However, as the network size increases, the rise in thread blocks exacerbates the issues of utilization and recomputation, resulting in a decrease in speedup.
+
+Additionally, having a network size that is too small may lead to diminishing returns as shown with the L1+L2+L3+L4 speedup. This can be due to the lack of parallelism with the smaller networks. When the number of thread blocks falls below the optimal level, it limits parallelism and leads to diminishing returns on speedup. Furthermore, we do not observe the same effect in the overall speedup because, in a smaller network, a larger fraction of the program is attributed to the convolutional layers. According to Amdahl’s Law, the speedup increases as the optimizable fraction increases.
+
+#### Altering L1’s Output Channel Size <a name="l1_output_channel"></a>
+<p align="center">
+   <img src="../figure/l1_channel_speedup.png"> <br>
+   Fig 6. Speedup by Altering L1 Output Channel Size
+</p>
+
+Figure 6 illustrates the overall speedup and the speedup of the fused convolutional layers (L1 to L4) for various network sizes, achieved by modifying L1's output channel size. The network size is represented as the size of L1’s output channel.
+
+Similar to altering L1's output dimension, a decrease in network size also leads to an increase in speedup, albeit a minor one. The minor differences in speedup can be attributed to the slight change in network size, as we are only modifying one of the relatively small layers. As the number of output channels increases, the number of threads per thread block while the recombinations per thread block and number of thread blocks remain constant. With less threads per thread block, there is higher utilization as more threads are allocated to do ‘useful’ work.
+
+As depicted in Figure 6, the overall trend indicates an increase in speedup with smaller network sizes. However, there are notable spikes at output channel sizes of 9, 11, and 13. This is attributed to a better thread and block mapping that results in better utilization. For instance, with an output channel size of 9, there are 324 threads per thread block. In contrast, an output channel size of 8 results in 288 threads per thread block, leading to more threads being ‘unproductive’. Furthermore, there's a notable drop in speedup at an output channel size of 15. This drop is due to ineffective thread and block mapping, where 540 threads per thread block are used, resulting in a significant number of 'unproductive' threads.
+
+### Conclusion <a name="conclusion"></a>
+Layer fusion is effective in improving the performance of a CNN by reducing the number of global memory transfers. While having more fused layers improves performance, it is better to fuse multiple fewer-layer stacks instead of fusing a single large multilayer stack due to the lower utilization and higher recomputations with the single multilayer stack. Additionally, due to the limitations on GPU thread and block mapping for layer fusion, it is advisable to keep the layer sizes small to ensure effective utilization of resources.
+
+While we cannot conclude whether a GPU implementation is better or worse than the original FPGA implementation in [1] due to the lack of comparison against an FPGA, we prove that the GPU implementation could serve as an alternative machine for the task. Despite having the need to recompute due to the limitation with kernel memory retention and communication between thread blocks, the GPU implementation is able to provide gain in performance that speeds up the inference time of a CNN.
 
 ## Resources <a name="resources"></a>
 > [1] M. Alwani, H. Chen, M. Ferdman and P. Milder, "Fused-layer CNN accelerators," 2016 49th Annual IEEE/ACM International Symposium on Microarchitecture (MICRO), Taipei, Taiwan, 2016, pp. 1-12, doi: [10.1109/MICRO.2016.7783725.](https://doi.org/10.1109/MICRO.2016.7783725)

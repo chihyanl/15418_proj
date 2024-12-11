@@ -101,7 +101,7 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 
 ### Overall Performance <a name="overall_performance"></a>
 <p align="center">
-  <img src="../figure/total_runtime_vs_implementation.png"> <br>
+  <img src="../figure/total_runtime_vs_implementation.png" width=800> <br>
   Fig 2. Total Runtime vs Implementation
 </p>
 Figure 2 shows the best timing of each implementation. 'Result Time' denotes the time taken to generate the prediction, while 'L1 Time', 'L2 Time', 'L3 Time', 'L4 Time', and 'L5 Time' represent the time taken for their respective layer, as indicated in Table 1.
@@ -114,11 +114,11 @@ Fusing 4 layers has the similar issues stated with fusing 3 layers but more seve
 
 ### Impact of Tile Size on Performance <a name="tile_size_performance"></a>
 <p align="center">
-   <img src="../figure/2_layer_fused_tile_size.png"> <br>
+   <img src="../figure/2_layer_fused_tile_size.png" width=800> <br>
    Fig 3. 2 Layer Fused Tile Size Results <br>
 </p>
 <p align="center">
-   <img src="../figure/3_layer_fused_tile_size.png"> <br>
+   <img src="../figure/3_layer_fused_tile_size.png" width=800> <br>
    Fig 4. 3 Layer Fused Tile Size Results
 </p>
 
@@ -135,7 +135,7 @@ To examine how network size influences speedup, we designed two experiments. In 
 
 #### Altering L1’s Output Dimension <a name="l1_output_dimension"></a>
 <p align="center">
-   <img src="../figure/l1_dim_speedup.png"> <br>
+   <img src="../figure/l1_dim_speedup.png" width=800> <br>
    Fig 5. Speedup by Altering L1 Output Dimension
 </p>
 
@@ -146,7 +146,7 @@ Additionally, having a network size that is too small may lead to diminishing re
 
 #### Altering L1’s Output Channel Size <a name="l1_output_channel"></a>
 <p align="center">
-   <img src="../figure/l1_channel_speedup.png"> <br>
+   <img src="../figure/l1_channel_speedup.png" width=800> <br>
    Fig 6. Speedup by Altering L1 Output Channel Size
 </p>
 

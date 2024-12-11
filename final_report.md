@@ -100,7 +100,7 @@ Our experiment is done with the handwritten digits MNIST with a 28x28x1 input, 6
 
 ### Overall Performance <a name="overall_performance"></a>
 <p align="center">
-  <img src="../figure/total_runtime_vs_implementation.png" width=500> <br>
+  <img src="../figure/total_runtime_vs_implementation.png" width=700> <br>
   Fig 2. Total Runtime vs Implementation
 </p>
 Figure 2 shows the best timing of each implementation. 'Result Time' denotes the time taken to generate the prediction, while 'L1 Time', 'L2 Time', 'L3 Time', 'L4 Time', and 'L5 Time' represent the time taken for their respective layer, as indicated in Table 1.

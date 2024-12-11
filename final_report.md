@@ -112,7 +112,7 @@ Fusing 4 layers has the similar issues stated with fusing 3 layers but more seve
 
 ### Impact of Tile Size on Performance <a name="tile_size_performance"></a>
 <p align="center">
-   <img src="../figure/2_layer_fused_tile_size.png"> <br>
+   <img src="../figure/2_layer_fused_tile_size.png"> <br><br>
    Fig 3. 2 Layer Fused Tile Size Results <br>
    <img src="../figure/3_layer_fused_tile_size.png"> <br>
    Fig 4. 3 Layer Fused Tile Size Results

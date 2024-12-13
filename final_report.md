@@ -6,6 +6,8 @@ usemathjax: true
 ---
 ## Title
 CNN with Layer Fusion on NVIDIA GPU
+## Repository URL
+https://github.com/chihyanl/15418_proj/
 ## Table of Content
 1. [Summary](#summary)
 2. [Background](#background)
